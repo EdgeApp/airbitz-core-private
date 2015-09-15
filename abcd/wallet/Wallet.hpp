@@ -47,6 +47,7 @@ public:
     int currency() const { return currency_; }
     std::string name() const;
     Status nameSet(const std::string &name);
+    Status currencySet(int currency);
 
     // Balance cache:
     Status balance(int64_t &result);
