@@ -60,8 +60,9 @@ Wallet::create(std::shared_ptr<Wallet> &result, Account &account,
 
     // Load the transaction cache (failure is acceptable):
     DataChunk data;
-    if (!fileLoad(data, watcherPath(*out)).log() || !out->txdb.load(data))
-        ABC_ERROR(ABC_CC_Error, "Unable to load serialized watcher").log();
+
+    ABC_CHECK(fileLoad(data, watcherPath(*out)));
+    ABC_CHECK(out->txdb.load(data));
 
     result = std::move(out);
     return Status();
