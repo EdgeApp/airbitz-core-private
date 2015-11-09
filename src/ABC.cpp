@@ -1576,7 +1576,9 @@ tABC_CC ABC_CreateReceiveRequest(const char *szUserName,
 
         Address address;
         ABC_CHECK_NEW(wallet->addresses.getNew(address));
+        address.metadata = pDetails;
         *pszRequestID = stringCopy(address.address);
+        ABC_CHECK_NEW(wallet->addresses.save(address));
     }
 
 exit:
