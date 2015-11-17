@@ -6,6 +6,7 @@
 #ifndef ABCD_BITCOIN_TX_DATABASE_HPP
 #define ABCD_BITCOIN_TX_DATABASE_HPP
 
+#include "../util/Status.hpp"
 #include <bitcoin/bitcoin.hpp>
 #include <mutex>
 #include <ostream>
@@ -15,8 +16,6 @@
 #include <time.h>
 
 namespace abcd {
-
-#define NTXID_HEIGHT_NOT_FOUND -9999
 
 enum class TxState
 {
@@ -70,10 +69,8 @@ public:
 
     /**
      * Finds a transaction's height, or 0 if it is unconfirmed.
-     * Returns NTXID_HEIGHT_NOT_FOUND if it isn't in the database,
-     * and -1 if it is malleated and unconfirmed.
      */
-    long long ntxidHeight(bc::hash_digest ntxid);
+    Status ntxidHeight(bc::hash_digest ntxid, long long &txHeight);
 
     /**
      * Returns true if this address has received any funds.
@@ -100,7 +97,7 @@ public:
     /**
      * Reconstitute the database from an in-memory blob.
      */
-    bool load(const bc::data_chunk &data);
+    Status load(const bc::data_chunk &data);
 
     /**
      * Debug dump to show db contents.

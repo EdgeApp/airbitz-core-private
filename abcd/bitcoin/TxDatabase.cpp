@@ -123,15 +123,15 @@ long long TxDatabase::txidHeight(bc::hash_digest txid) const
     return i->second.block_height;
 }
 
-long long TxDatabase::ntxidHeight(bc::hash_digest ntxid)
+Status TxDatabase::ntxidHeight(bc::hash_digest ntxid, long long &height)
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::vector<TxRow *> txRows = ntxidLookupAll(ntxid);
     if (txRows.empty())
-        return NTXID_HEIGHT_NOT_FOUND;
+        return ABC_ERROR(ABC_CC_Synchronizing, "tx isn't in the database");
 
-    long long height = 0;
+    height = 0;
     for (auto row: txRows)
     {
         if (TxState::confirmed == row->state)
@@ -145,11 +145,10 @@ long long TxDatabase::ntxidHeight(bc::hash_digest ntxid)
     // malleated and unconfirmed:
     if (1 < txRows.size() && !height)
     {
-        ABC_DebugLevel(1, "ntxidHeight returning -1 (malleated)");
-        return -1;
+        height = -1;
     }
 
-    return height;
+    return Status();
 }
 
 bool TxDatabase::has_history(const bc::payment_address &address) const
@@ -295,7 +294,7 @@ bc::data_chunk TxDatabase::serialize() const
     return bc::data_chunk(str.begin(), str.end());
 }
 
-bool TxDatabase::load(const bc::data_chunk &data)
+Status TxDatabase::load(const bc::data_chunk &data)
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -310,12 +309,11 @@ bool TxDatabase::load(const bc::data_chunk &data)
         if (old_serial_magic == magic)
         {
             ABC_DebugLog("TxDatabase::load old_serial_magic != magic - return true");
-            return true;
+            return Status();
         }
         if (serial_magic != magic)
         {
-            ABC_DebugLog("TxDatabase::load serial_magic != magic - return false");
-            return false;
+            return ABC_ERROR(ABC_CC_Error, "TxDatabase::load serial_magic != magic - return false");
         }
 
         // Last block height:
@@ -326,8 +324,7 @@ bool TxDatabase::load(const bc::data_chunk &data)
         {
             if (serial.read_byte() != serial_tx)
             {
-                ABC_DebugLog("TxDatabase::load serial.read_byte() != serial_tx - return false");
-                return false;
+                return ABC_ERROR(ABC_CC_Error, "TxDatabase::load serial.read_byte() != serial_tx - return false");
             }
 
             bc::hash_digest hash = serial.read_hash();
@@ -352,13 +349,12 @@ bool TxDatabase::load(const bc::data_chunk &data)
     }
     catch (bc::end_of_stream)
     {
-        ABC_DebugLog("TxDatabase::load try->catch() - return false");
-        return false;
+        return ABC_ERROR(ABC_CC_Error, "TxDatabase::load try->catch() - return false");
     }
     last_height_ = last_height;
     rows_ = rows;
     ABC_DebugLog("TxDatabase::load last_eight=%d - return true", last_height);
-    return true;
+    return Status();
 }
 
 void TxDatabase::dump(std::ostream &out) const
