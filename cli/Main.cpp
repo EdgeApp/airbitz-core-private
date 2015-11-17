@@ -6,6 +6,7 @@
  */
 
 #include "Command.hpp"
+#include "../abcd/json/JsonObject.hpp"
 #include "../src/LoginShim.hpp"
 #include <iostream>
 
@@ -13,11 +14,44 @@ using namespace abcd;
 
 #define CA_CERT "./cli/ca-certificates.crt"
 
+struct ConfigJson:
+    public JsonObject
+{
+    ABC_JSON_STRING(apiKey, "apiKey", nullptr)
+    ABC_JSON_STRING(chainKey, "chainKey", nullptr)
+    ABC_JSON_STRING(hiddenBitzKey, "hiddenBitzKey", nullptr)
+};
+
+static std::string GetConfigFilePath()
+{
+    // Mac: ~/Library/Application Support/Airbitz/airbitz.conf
+    // Unix: ~/.config/airbitz/airbitz.conf
+    std::string pathRet;
+    char* pszHome = getenv("HOME");
+    if (pszHome == NULL || strlen(pszHome) == 0)
+        pathRet = "/";
+    else
+        pathRet = pszHome;
+
+#ifdef MAC_OSX
+    pathRet.append("/Library/Application Support/Airbitz/airbitz.conf");
+#else
+    pathRet.append("/.config/airbitz/airbitz.conf");
+#endif
+    return pathRet;
+}
+
 /**
  * The main program body.
  */
 static Status run(int argc, char *argv[])
 {
+    ConfigJson json;
+    ABC_CHECK(json.load(GetConfigFilePath()));
+    ABC_CHECK(json.apiKeyOk());
+    ABC_CHECK(json.chainKeyOk());
+    ABC_CHECK(json.hiddenBitzKeyOk());
+
     if (argc < 2)
     {
         CommandRegistry::print();
@@ -31,13 +65,21 @@ static Status run(int argc, char *argv[])
 
     // Populate the session up to the required level:
     Session session;
+
     if (InitLevel::context <= command->level())
     {
         if (argc < 3)
             return ABC_ERROR(ABC_CC_Error, std::string("No working directory given"));
 
         unsigned char seed[] = {1, 2, 3};
-        ABC_CHECK_OLD(ABC_Initialize(argv[2], CA_CERT, seed, sizeof(seed), &error));
+        ABC_CHECK_OLD(ABC_Initialize(argv[2],
+                                     CA_CERT,
+                                     json.apiKey(),
+                                     json.chainKey(),
+                                     json.hiddenBitzKey(),
+                                     seed,
+                                     sizeof(seed),
+                                     &error));
     }
     if (InitLevel::lobby <= command->level())
     {
