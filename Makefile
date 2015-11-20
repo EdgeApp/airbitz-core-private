@@ -46,6 +46,9 @@ endif
 
 # Targets:
 all: $(WORK_DIR)/abc-cli check $(WORK_DIR)/abc-watcher
+	@echo $(shell if command -v astyle >/dev/null; then \
+		astyle --style=allman --attach-namespaces --attach-extern-c --align-pointer=name --align-reference=name --keep-one-line-blocks --max-code-length=80 --suffix=none *.cpp *.hpp *.h --recursive --exclude=build --exclude=codegen --exclude=deps --exclude=minilibs --dry-run -Q | grep "Formatted"; \
+	fi;)
 libabc.a:  $(WORK_DIR)/libabc.a
 libabc.so: $(WORK_DIR)/libabc.so
 
@@ -69,6 +72,9 @@ check: $(WORK_DIR)/abc-test
 
 clean:
 	$(RM) -r $(WORK_DIR) codegen
+
+format:
+	$(RUN) astyle --style=allman --attach-namespaces --attach-extern-c --align-pointer=name --align-reference=name --keep-one-line-blocks --max-code-length=80 --suffix=none *.cpp *.hpp *.h --recursive --exclude=build --exclude=codegen --exclude=deps --exclude=minilibs -Q
 
 # Automatic dependency rules:
 $(WORK_DIR)/%.o: %.c | $(generated_headers)
