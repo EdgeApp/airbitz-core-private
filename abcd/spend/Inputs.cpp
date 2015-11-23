@@ -231,8 +231,12 @@ inputsPickOptimal(uint64_t &resultFee, uint64_t &resultChange,
     }
     while (sourced < totalOut + fee);
 
-    resultFee = fee;
-    resultChange = sourced - (totalOut + fee);
+    // Obfuscate change address
+    uint64_t change = sourced - (totalOut + fee);
+    resultChange = (change/1000)*1000;
+
+    resultFee = fee + (change - resultChange);
+
     return Status();
 }
 
