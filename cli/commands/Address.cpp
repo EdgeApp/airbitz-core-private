@@ -6,6 +6,7 @@
  */
 
 #include "../Command.hpp"
+#include "../../abcd/util/Util.hpp"
 #include "../../abcd/wallet/Wallet.hpp"
 #include <unistd.h>
 #include <signal.h>
@@ -29,5 +30,33 @@ COMMAND(InitLevel::wallet, CliAddressList, "address-list")
                   (address.recyclable ? "recyclable" : "used") << std::endl;
     }
 
+    return Status();
+}
+
+COMMAND(InitLevel::wallet, CliAddressGenerate, "address-generate")
+{
+    if (argc != 4)
+        return ABC_ERROR(ABC_CC_Error, "usage: ... address-generate <user> <pass> <wallet-name> <count>");
+
+    for(int c = 0; c < atol(argv[3]); c++)
+    {
+        tABC_TxDetails txDetails;
+        AutoString requestId;
+        ABC_CHECK_OLD(ABC_CreateReceiveRequest(session.username,
+                                               session.password,
+                                               argv[2],
+                                               &txDetails,
+                                               &requestId.get(),
+                                               &error
+                                              ));
+
+        ABC_CHECK_OLD(ABC_FinalizeReceiveRequest(session.username,
+                                           session.password,
+                                           argv[2],
+                                           requestId,
+                                           &error
+                                          ));
+        std::cout << requestId << std::endl;
+    }
     return Status();
 }
