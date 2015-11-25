@@ -147,24 +147,6 @@ COMMAND(InitLevel::context, GeneralUpdate, "general-update")
     return Status();
 }
 
-COMMAND(InitLevel::wallet, GenerateAddresses, "generate-addresses")
-{
-    if (argc != 4)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... generate-addresses <user> <pass> <wallet-name> <count>");
-
-    bc::hd_private_key m(session.wallet->bitcoinKey());
-    bc::hd_private_key m0 = m.generate_private_key(0);
-    bc::hd_private_key m00 = m0.generate_private_key(0);
-    long max = strtol(argv[3], 0, 10);
-    for (int i = 0; i < max; ++i)
-    {
-        bc::hd_private_key m00n = m00.generate_private_key(i);
-        std::cout << "watch " << m00n.address().encoded() << std::endl;
-    }
-
-    return Status();
-}
-
 COMMAND(InitLevel::context, GetQuestionChoices, "get-question-choices")
 {
     if (argc != 0)
