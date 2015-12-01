@@ -58,7 +58,8 @@ static Status run(int argc, char *argv[])
     ABC_CHECK(json.chainKeyOk());
     ABC_CHECK(json.hiddenBitzKeyOk());
 
-    if (argc < 2)
+    if (argc < 2 || strcmp(argv[1], "help") == 0
+                 || strcmp(argv[1], "--help") == 0)
     {
         CommandRegistry::print();
         return Status();
@@ -67,7 +68,8 @@ static Status run(int argc, char *argv[])
     // Find the command:
     Command *command = CommandRegistry::find(argv[1]);
     if (!command)
-        return ABC_ERROR(ABC_CC_Error, "unknown command " + std::string(argv[1]));
+        return ABC_ERROR(ABC_CC_Error, "Unknown command " + std::string(argv[1])
+                         + "\n" + "Try 'abc-cli --help' for more information.");
 
     // Populate the session up to the required level:
     Session session;

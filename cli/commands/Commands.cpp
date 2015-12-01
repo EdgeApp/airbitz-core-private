@@ -285,6 +285,8 @@ COMMAND(InitLevel::account, SetNickname, "set-nickname")
 
 COMMAND(InitLevel::login, SignIn, "sign-in")
 {
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli sign-in");
     return Status();
 }
 
