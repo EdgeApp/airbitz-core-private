@@ -29,7 +29,7 @@ COMMAND(InitLevel::lobby, OtpKeyGet, "otp-key-get")
 
 COMMAND(InitLevel::lobby, OtpKeySet, "otp-key-set")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-key-set <key>");
 
     OtpKey key;
@@ -67,7 +67,7 @@ COMMAND(InitLevel::login, OtpAuthGet, "otp-auth-get")
 
 COMMAND(InitLevel::login, OtpAuthSet, "otp-auth-set")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-auth-set <timeout-sec>");
 
     ABC_CHECK(otpAuthSet(*session.login, atol(argv[0])));

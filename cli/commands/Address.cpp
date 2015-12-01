@@ -34,7 +34,7 @@ COMMAND(InitLevel::wallet, CliAddressList, "address-list")
 
 COMMAND(InitLevel::wallet, CliAddressGenerate, "address-generate")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli address-generate <count>");
 
     for(int c = 0; c < atol(argv[0]); c++)

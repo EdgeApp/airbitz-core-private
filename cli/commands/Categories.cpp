@@ -8,6 +8,7 @@
 #include "../Command.hpp"
 #include "../../abcd/account/AccountCategories.hpp"
 #include <iostream>
+#include <string.h>
 
 using namespace abcd;
 
@@ -26,7 +27,7 @@ COMMAND(InitLevel::account, CategoryList, "category-list")
 
 COMMAND(InitLevel::account, CategoryAdd, "category-add")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli category-add <category>");
     std::string category = argv[0];
 
@@ -36,7 +37,7 @@ COMMAND(InitLevel::account, CategoryAdd, "category-add")
 
 COMMAND(InitLevel::account, CategoryRemove, "category-remove")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli category-remove <category>");
     std::string category = argv[0];
 

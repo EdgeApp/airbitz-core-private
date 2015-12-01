@@ -20,7 +20,7 @@ using namespace abcd;
 
 COMMAND(InitLevel::wallet, CliWalletArchive, "wallet-archive")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-archive 1|0");
 
     ABC_CHECK(session.account->wallets.archivedSet(session.uuid, atoi(argv[0])));
@@ -30,7 +30,7 @@ COMMAND(InitLevel::wallet, CliWalletArchive, "wallet-archive")
 
 COMMAND(InitLevel::account, CliWalletCreate, "wallet-create")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-create <currency>");
 
     Currency currency;
@@ -45,7 +45,7 @@ COMMAND(InitLevel::account, CliWalletCreate, "wallet-create")
 
 COMMAND(InitLevel::wallet, CliWalletDecrypt, "wallet-decrypt")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-decrypt <file>");
 
     JsonBox box;
@@ -60,7 +60,7 @@ COMMAND(InitLevel::wallet, CliWalletDecrypt, "wallet-decrypt")
 
 COMMAND(InitLevel::wallet, CliWalletEncrypt, "wallet-encrypt")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-encrypt <file>");
 
     DataChunk contents;
@@ -123,7 +123,7 @@ COMMAND(InitLevel::account, CliWalletList, "wallet-list")
 
 COMMAND(InitLevel::account, CliWalletOrder, "wallet-order")
 {
-    if (argc < 1)
+    if (argc < 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-order <wallet-ids>...");
 
     std::string ids;

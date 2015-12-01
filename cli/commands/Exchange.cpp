@@ -8,6 +8,7 @@
 #include "../Command.hpp"
 #include "../../abcd/Context.hpp"
 #include <iostream>
+#include <string.h>
 
 using namespace abcd;
 
@@ -34,7 +35,7 @@ COMMAND(InitLevel::context, ExchangeFetch, "exchange-fetch")
 
 COMMAND(InitLevel::account, ExchangeUpdate, "exchange-update")
 {
-    if (argc != 1)
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli get-exchange-rate <currency>");
 
     Currency currency;
