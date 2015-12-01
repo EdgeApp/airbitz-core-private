@@ -68,3 +68,19 @@ immediately after the comment block.
 Source files do not need `@file` comments,
 since their matching header contains the necessary information.
 
+
+## Automatic formatting
+
+Please do use the coding style set by astyle (http://astyle.sourceforge.net/) with the following parameters:
+
+> astyle --style=allman --attach-namespaces --attach-extern-c --align-pointer=name --align-reference=name --keep-one-line-blocks --max-code-length=80 --suffix=none *.cpp *.hpp *.h --recursive --exclude=build --exclude=codegen --exclude=deps --exclude=minilibs
+
+#### make format
+
+Use ***make format*** to apply our astyle formating to all files.
+
+#### Git commit hook
+
+For convenience, enable a Git hook to trigger the astyle styling whenever a git commit operation is performed. This is done by typing in the repository directory:
+
+> cd .git/hooks && ln -s ../../util/git_hooks/pre-commit
