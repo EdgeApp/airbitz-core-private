@@ -16,9 +16,8 @@ using namespace abcd;
 
 COMMAND(InitLevel::wallet, CliAddressList, "address-list")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... address-list <user> <pass> <wallet>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli address-list");
 
     auto list = session.wallet->addresses.list();
     for (const auto &i: list)
@@ -35,16 +34,16 @@ COMMAND(InitLevel::wallet, CliAddressList, "address-list")
 
 COMMAND(InitLevel::wallet, CliAddressGenerate, "address-generate")
 {
-    if (argc != 4)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... address-generate <user> <pass> <wallet-name> <count>");
+    if (argc != 1)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli address-generate <count>");
 
-    for(int c = 0; c < atol(argv[3]); c++)
+    for(int c = 0; c < atol(argv[0]); c++)
     {
         tABC_TxDetails txDetails;
         AutoString requestId;
         ABC_CHECK_OLD(ABC_CreateReceiveRequest(session.username,
                                                session.password,
-                                               argv[2],
+                                               session.uuid,
                                                &txDetails,
                                                &requestId.get(),
                                                &error
@@ -52,7 +51,7 @@ COMMAND(InitLevel::wallet, CliAddressGenerate, "address-generate")
 
         ABC_CHECK_OLD(ABC_FinalizeReceiveRequest(session.username,
                                            session.password,
-                                           argv[2],
+                                           session.uuid,
                                            requestId,
                                            &error
                                           ));

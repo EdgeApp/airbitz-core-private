@@ -20,27 +20,24 @@ using namespace abcd;
 
 COMMAND(InitLevel::wallet, CliWalletArchive, "wallet-archive")
 {
-    if (argc != 4)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... wallet-archive <user> <pass> <wallet-id> 1|0");
+    if (argc != 1)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-archive 1|0");
 
-    ABC_CHECK(session.account->wallets.archivedSet(session.uuid, atoi(argv[3])));
+    ABC_CHECK(session.account->wallets.archivedSet(session.uuid, atoi(argv[0])));
 
     return Status();
 }
 
 COMMAND(InitLevel::account, CliWalletCreate, "wallet-create")
 {
-    if (argc != 4)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... wallet-create <user> <pass> <wallet-name> <currency>");
+    if (argc != 1)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-create <currency>");
 
     Currency currency;
-    ABC_CHECK(currencyNumber(currency, argv[3]));
+    ABC_CHECK(currencyNumber(currency, argv[0]));
 
     std::shared_ptr<Wallet> wallet;
-    ABC_CHECK(cacheWalletNew(wallet, session.username, argv[2],
-                             static_cast<int>(currency)));
+    ABC_CHECK(cacheWalletNew(wallet, session.username, session.password, static_cast<int>(currency)));
     std::cout << "Created wallet " << wallet->id() << std::endl;
 
     return Status();
@@ -48,12 +45,11 @@ COMMAND(InitLevel::account, CliWalletCreate, "wallet-create")
 
 COMMAND(InitLevel::wallet, CliWalletDecrypt, "wallet-decrypt")
 {
-    if (argc != 4)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... wallet-decrypt <user> <pass> <wallet-id> <file>");
+    if (argc != 1)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-decrypt <file>");
 
     JsonBox box;
-    ABC_CHECK(box.load(session.wallet->syncDir() + argv[3]));
+    ABC_CHECK(box.load(session.wallet->syncDir() + argv[0]));
 
     DataChunk data;
     ABC_CHECK(box.decrypt(data, session.wallet->dataKey()));
@@ -64,12 +60,11 @@ COMMAND(InitLevel::wallet, CliWalletDecrypt, "wallet-decrypt")
 
 COMMAND(InitLevel::wallet, CliWalletEncrypt, "wallet-encrypt")
 {
-    if (argc != 4)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... wallet-encrypt <user> <pass> <wallet-id> <file>");
+    if (argc != 1)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-encrypt <file>");
 
     DataChunk contents;
-    ABC_CHECK(fileLoad(contents, session.wallet->syncDir() + argv[3]));
+    ABC_CHECK(fileLoad(contents, session.wallet->syncDir() + argv[0]));
 
     JsonBox box;
     ABC_CHECK(box.encrypt(contents, session.wallet->dataKey()));
@@ -81,9 +76,8 @@ COMMAND(InitLevel::wallet, CliWalletEncrypt, "wallet-encrypt")
 
 COMMAND(InitLevel::wallet, CliWalletInfo, "wallet-info")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... wallet-info <user> <pass> <wallet-id>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-info");
 
     // Obtain the balance:
     WatcherThread thread;
@@ -105,8 +99,8 @@ COMMAND(InitLevel::wallet, CliWalletInfo, "wallet-info")
 
 COMMAND(InitLevel::account, CliWalletList, "wallet-list")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... wallet-list <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-list");
 
     // Iterate over wallets:
     auto ids = session.account->wallets.list();
@@ -129,15 +123,14 @@ COMMAND(InitLevel::account, CliWalletList, "wallet-list")
 
 COMMAND(InitLevel::account, CliWalletOrder, "wallet-order")
 {
-    if (argc < 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... wallet-order <user> <pass> <wallet-ids>...");
+    if (argc < 1)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-order <wallet-ids>...");
 
     std::string ids;
-    size_t count = argc - 2;
+    size_t count = argc;
     for (size_t i = 0; i < count; ++i)
     {
-        ids += argv[2 + i];
+        ids += argv[i];
         ids += "\n";
     }
 
@@ -149,9 +142,8 @@ COMMAND(InitLevel::account, CliWalletOrder, "wallet-order")
 
 COMMAND(InitLevel::wallet, CliWalletSeed, "wallet-seed")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... wallet-seed <user> <pass> <wallet-id>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli wallet-seed");
 
     std::cout << base16Encode(session.wallet->bitcoinKey()) << std::endl;
 
