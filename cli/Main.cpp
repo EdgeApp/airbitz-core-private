@@ -10,7 +10,7 @@
 #include "../abcd/util/Util.hpp"
 #include "../src/LoginShim.hpp"
 #include <iostream>
-#include <unistd.h>
+#include <getopt.h>
 
 using namespace abcd;
 
@@ -80,7 +80,18 @@ static Status run(int argc, char *argv[])
 
     int c;
     opterr = 0;
-    while ((c = getopt (argc, argv, "d:u:p:")) != -1)
+
+    static struct option long_options[] =
+      {
+        {"working-dir", required_argument, 0, 'd'},
+        {"username",    required_argument, 0, 'u'},
+        {"password",    required_argument, 0, 'p'},
+        {0, 0, 0, 0}
+      };
+    /* getopt_long stores the option index here. */
+    int option_index = 0;
+
+    while ((c = getopt_long (argc, argv, "d:u:p:", long_options, &option_index)) != -1)
     {
       switch (c)
         {
@@ -193,6 +204,6 @@ int main(int argc, char *argv[])
 {
     Status s = run(argc, argv);
     if (!s)
-        std::cerr << s << std::endl;
+        std::cerr << s.message() << std::endl;
     return s ? 0 : 1;
 }
