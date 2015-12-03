@@ -45,7 +45,8 @@ COMMAND(InitLevel::wallet, SpendUri, "spend-uri")
 COMMAND(InitLevel::wallet, SpendTransfer, "spend-transfer")
 {
     if (argc != 2 || strcmp(argv[0], "help") == 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli spend-transfer <wallet-dest> <amount>");
+        return ABC_ERROR(ABC_CC_Error,
+                         "usage: abc-cli spend-transfer <wallet-dest> <amount>");
     const char *dest = argv[0];
     int amount = atoi(argv[1]);
 
@@ -79,7 +80,8 @@ COMMAND(InitLevel::wallet, SpendTransfer, "spend-transfer")
 COMMAND(InitLevel::wallet, SpendInternal, "spend-internal")
 {
     if (argc != 2 || strcmp(argv[0], "help") == 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli spend-internal <address> <amount>");
+        return ABC_ERROR(ABC_CC_Error,
+                         "usage: abc-cli spend-internal <address> <amount>");
     const char *address = argv[0];
     int amount = atoi(argv[1]);
 

@@ -50,11 +50,11 @@ COMMAND(InitLevel::wallet, CliAddressGenerate, "address-generate")
                                               ));
 
         ABC_CHECK_OLD(ABC_FinalizeReceiveRequest(session.username,
-                                           session.password,
-                                           session.uuid,
-                                           requestId,
-                                           &error
-                                          ));
+                      session.password,
+                      session.uuid,
+                      requestId,
+                      &error
+                                                ));
         std::cout << requestId << std::endl;
     }
     return Status();

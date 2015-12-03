@@ -28,8 +28,8 @@ COMMAND(InitLevel::context, AccountAvailable, "account-available")
 COMMAND(InitLevel::account, AccountDecrypt, "account-decrypt")
 {
     if (argc != 1 || strcmp(argv[0], "help") == 0)
-       return ABC_ERROR(ABC_CC_Error, "usage: abc-cli account-decrypt <filename>\n"
-           "note: The filename is account-relative.");
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli account-decrypt <filename>\n"
+                         "note: The filename is account-relative.");
 
     JsonBox box;
     ABC_CHECK(box.load(session.account->dir() + argv[0]));
@@ -45,7 +45,7 @@ COMMAND(InitLevel::account, AccountEncrypt, "account-encrypt")
 {
     if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli account-encrypt <filename>\n"
-            "note: The filename is account-relative.");
+                         "note: The filename is account-relative.");
 
     DataChunk contents;
     ABC_CHECK(fileLoad(contents, session.account->dir() + argv[0]));

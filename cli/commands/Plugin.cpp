@@ -26,7 +26,8 @@ COMMAND(InitLevel::account, PluginGet, "plugin-get")
 COMMAND(InitLevel::account, PluginSet, "plugin-set")
 {
     if (argc != 3 || strcmp(argv[0], "help") == 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli plugin-set <plugin> <key> <value>");
+        return ABC_ERROR(ABC_CC_Error,
+                         "usage: abc-cli plugin-set <plugin> <key> <value>");
     ABC_CHECK(pluginDataSet(*session.account, argv[0], argv[1], argv[2]));
 
     return Status();

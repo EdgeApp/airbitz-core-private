@@ -33,7 +33,7 @@ static std::string GetConfigFilePath()
     // Mac: ~/Library/Application Support/Airbitz/airbitz.conf
     // Unix: ~/.config/airbitz/airbitz.conf
     std::string pathRet;
-    char* pszHome = getenv("HOME");
+    char *pszHome = getenv("HOME");
     if (pszHome == NULL || strlen(pszHome) == 0)
         pathRet = "/";
     else
@@ -59,7 +59,7 @@ static Status run(int argc, char *argv[])
     ABC_CHECK(json.hiddenBitzKeyOk());
 
     if (argc < 2 || strcmp(argv[1], "help") == 0
-                 || strcmp(argv[1], "--help") == 0)
+            || strcmp(argv[1], "--help") == 0)
     {
         CommandRegistry::print();
         return Status();
@@ -82,51 +82,53 @@ static Status run(int argc, char *argv[])
     opterr = 0;
 
     static struct option long_options[] =
-      {
+    {
         {"working-dir", required_argument, 0, 'd'},
         {"username",    required_argument, 0, 'u'},
         {"password",    required_argument, 0, 'p'},
         {0, 0, 0, 0}
-      };
+    };
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    while ((c = getopt_long (argc, argv, "d:u:p:", long_options, &option_index)) != -1)
+    while ((c = getopt_long (argc, argv, "d:u:p:", long_options,
+                             &option_index)) != -1)
     {
-      switch (c)
+        switch (c)
         {
         case 'd':
-          workingDir = optarg;
-          break;
+            workingDir = optarg;
+            break;
         case 'p':
-          session.password = optarg;
-          break;
+            session.password = optarg;
+            break;
         case 'u':
-          session.username = optarg;
-          break;
+            session.username = optarg;
+            break;
         case '?':
-          if (optopt == 'd')
-            return ABC_ERROR(ABC_CC_Error, std::string("-d requires a working directory"));
-          else if (optopt == 'p')
-            return ABC_ERROR(ABC_CC_Error, std::string("-p requires a password"));
-          else if (optopt == 'u')
-            return ABC_ERROR(ABC_CC_Error, std::string("-u requires a username"));
-          else if (isprint (optopt))
-            return ABC_ERROR(ABC_CC_Error, std::string("Unknown option `-%c'.\n", optopt));
-          else
-            return ABC_ERROR(ABC_CC_Error, std::string("Unknown option character `\\x%x'.\n",
-            optopt));
+            if (optopt == 'd')
+                return ABC_ERROR(ABC_CC_Error, std::string("-d requires a working directory"));
+            else if (optopt == 'p')
+                return ABC_ERROR(ABC_CC_Error, std::string("-p requires a password"));
+            else if (optopt == 'u')
+                return ABC_ERROR(ABC_CC_Error, std::string("-u requires a username"));
+            else if (isprint (optopt))
+                return ABC_ERROR(ABC_CC_Error, std::string("Unknown option `-%c'.\n", optopt));
+            else
+                return ABC_ERROR(ABC_CC_Error,
+                                 std::string("Unknown option character `\\x%x'.\n",
+                                             optopt));
         default:
-          abort ();
+            abort ();
         }
     }
 
     if(workingDir == NULL)
     {
-      if(json.workingDirOk())
-        workingDir = (char *)json.workingDir();
-      else
-        return ABC_ERROR(ABC_CC_Error, std::string("No working directory given"));
+        if(json.workingDirOk())
+            workingDir = (char *)json.workingDir();
+        else
+            return ABC_ERROR(ABC_CC_Error, std::string("No working directory given"));
     }
 
     if (InitLevel::context <= command->level())

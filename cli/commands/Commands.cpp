@@ -20,7 +20,8 @@ COMMAND(InitLevel::login, ChangePassword, "change-password")
     if (argc != 1 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error, "usage: abc-cli change-password <new-pass>");
 
-    ABC_CHECK_OLD(ABC_ChangePassword(session.username, session.password, argv[0], &error));
+    ABC_CHECK_OLD(ABC_ChangePassword(session.username, session.password, argv[0],
+                                     &error));
 
     return Status();
 }
@@ -28,9 +29,11 @@ COMMAND(InitLevel::login, ChangePassword, "change-password")
 COMMAND(InitLevel::lobby, ChangePasswordRecovery, "change-password-recovery")
 {
     if (argc != 2 || strcmp(argv[0], "help") == 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli change-password-recovery <ra> <new-pass>");
+        return ABC_ERROR(ABC_CC_Error,
+                         "usage: abc-cli change-password-recovery <ra> <new-pass>");
 
-    ABC_CHECK_OLD(ABC_ChangePasswordWithRecoveryAnswers(session.username, argv[0], argv[1], &error));
+    ABC_CHECK_OLD(ABC_ChangePasswordWithRecoveryAnswers(session.username, argv[0],
+                  argv[1], &error));
 
     return Status();
 }
@@ -59,7 +62,8 @@ COMMAND(InitLevel::context, CheckPassword, "check-password")
 COMMAND(InitLevel::lobby, CheckRecoveryAnswers, "check-recovery-answers")
 {
     if (argc != 2 || strcmp(argv[0], "help") == 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli check-recovery-answers <user> <ras>");
+        return ABC_ERROR(ABC_CC_Error,
+                         "usage: abc-cli check-recovery-answers <user> <ras>");
 
     AutoString szQuestions;
     ABC_CHECK_OLD(ABC_GetRecoveryQuestions(session.username, &szQuestions.get(),
@@ -232,7 +236,8 @@ COMMAND(InitLevel::login, RecoveryReminderSet, "recovery-reminder-set")
     printf("Old Reminder Count: %d\n", pSettings->recoveryReminderCount);
 
     pSettings->recoveryReminderCount = strtol(argv[0], 0, 10);
-    ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username, session.password, pSettings, &error));
+    ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username, session.password,
+                                            pSettings, &error));
 
     return Status();
 }
@@ -240,7 +245,8 @@ COMMAND(InitLevel::login, RecoveryReminderSet, "recovery-reminder-set")
 COMMAND(InitLevel::wallet, SearchBitcoinSeed, "search-bitcoin-seed")
 {
     if (argc != 3 || strcmp(argv[0], "help") == 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli search-bitcoin-seed <addr> <start> <end>");
+        return ABC_ERROR(ABC_CC_Error,
+                         "usage: abc-cli search-bitcoin-seed <addr> <start> <end>");
 
     long start = strtol(argv[1], 0, 10);
     long end = strtol(argv[2], 0, 10);
@@ -278,7 +284,8 @@ COMMAND(InitLevel::account, SetNickname, "set-nickname")
                                           &pSettings.get(), &error));
     free(pSettings->szNickname);
     pSettings->szNickname = strdup(argv[0]);
-    ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username, session.password, pSettings, &error));
+    ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username, session.password,
+                                            pSettings, &error));
 
     return Status();
 }

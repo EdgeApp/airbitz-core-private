@@ -37,7 +37,8 @@ COMMAND(InitLevel::account, CliWalletCreate, "wallet-create")
     ABC_CHECK(currencyNumber(currency, argv[0]));
 
     std::shared_ptr<Wallet> wallet;
-    ABC_CHECK(cacheWalletNew(wallet, session.username, session.password, static_cast<int>(currency)));
+    ABC_CHECK(cacheWalletNew(wallet, session.username, session.password,
+                             static_cast<int>(currency)));
     std::cout << "Created wallet " << wallet->id() << std::endl;
 
     return Status();

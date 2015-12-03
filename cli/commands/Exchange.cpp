@@ -40,7 +40,8 @@ COMMAND(InitLevel::account, ExchangeUpdate, "exchange-update")
 
     Currency currency;
     ABC_CHECK(currencyNumber(currency, argv[0]));
-    ABC_CHECK_OLD(ABC_RequestExchangeRateUpdate(session.username, session.password, static_cast<int>(currency), &error));
+    ABC_CHECK_OLD(ABC_RequestExchangeRateUpdate(session.username, session.password,
+                  static_cast<int>(currency), &error));
 
     double rate;
     ABC_CHECK(gContext->exchangeCache.satoshiToCurrency(rate, 100000000, currency));
