@@ -143,7 +143,7 @@ tABC_CC ABC_Initialize(const char                   *szRootDir,
     {
         // Initialize the global context object:
         gContext.reset(new Context(szRootDir, szCaCertPath, szApiKeyHeader,
-            szChainApiUserPwd, szHiddenBitzKey));
+                                   szChainApiUserPwd, szHiddenBitzKey));
 
         // initialize logging
         ABC_CHECK_NEW(debugInitialize());

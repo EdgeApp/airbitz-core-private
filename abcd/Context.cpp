@@ -14,8 +14,8 @@ namespace abcd {
 std::unique_ptr<Context> gContext;
 
 Context::Context(const std::string &rootDir, const std::string &certPath,
-     const std::string &apiKeyHeader, const std::string &chainApiUserPwd,
-     const std::string &hiddenBitzKey):
+                 const std::string &apiKeyHeader, const std::string &chainApiUserPwd,
+                 const std::string &hiddenBitzKey):
     rootDir_(fileSlashify(rootDir)),
     certPath_(certPath),
     apiKeyHeader_(apiKeyHeader),
