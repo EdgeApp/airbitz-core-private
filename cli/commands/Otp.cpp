@@ -15,8 +15,8 @@ using namespace abcd;
 
 COMMAND(InitLevel::lobby, OtpKeyGet, "otp-key-get")
 {
-    if (argc != 1)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... otp-key-get <user>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-key-get");
 
     const OtpKey *key = session.lobby->otpKey();
     if (key)
@@ -29,11 +29,11 @@ COMMAND(InitLevel::lobby, OtpKeyGet, "otp-key-get")
 
 COMMAND(InitLevel::lobby, OtpKeySet, "otp-key-set")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... otp-key-set <user> <key>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-key-set <key>");
 
     OtpKey key;
-    ABC_CHECK(key.decodeBase32(argv[1]));
+    ABC_CHECK(key.decodeBase32(argv[0]));
     ABC_CHECK(session.lobby->otpKeySet(key));
 
     return Status();
@@ -41,8 +41,8 @@ COMMAND(InitLevel::lobby, OtpKeySet, "otp-key-set")
 
 COMMAND(InitLevel::lobby, OtpKeyRemove, "otp-key-remove")
 {
-    if (argc != 1)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... otp-key-remove <user>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-key-remove");
 
     ABC_CHECK(session.lobby->otpKeyRemove());
 
@@ -51,8 +51,8 @@ COMMAND(InitLevel::lobby, OtpKeyRemove, "otp-key-remove")
 
 COMMAND(InitLevel::login, OtpAuthGet, "otp-auth-get")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... otp-auth-get <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-auth-get");
 
     bool enabled;
     long timeout;
@@ -67,19 +67,18 @@ COMMAND(InitLevel::login, OtpAuthGet, "otp-auth-get")
 
 COMMAND(InitLevel::login, OtpAuthSet, "otp-auth-set")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... otp-auth-set <user> <pass> <timeout-sec>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-auth-set <timeout-sec>");
 
-    ABC_CHECK(otpAuthSet(*session.login, atol(argv[2])));
+    ABC_CHECK(otpAuthSet(*session.login, atol(argv[0])));
 
     return Status();
 }
 
 COMMAND(InitLevel::login, OtpAuthRemove, "otp-auth-remove")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... otp-auth-remove <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-auth-remove");
 
     ABC_CHECK(otpAuthRemove(*session.login));
     ABC_CHECK(session.lobby->otpKeyRemove());
@@ -90,7 +89,7 @@ COMMAND(InitLevel::login, OtpAuthRemove, "otp-auth-remove")
 COMMAND(InitLevel::context, OtpResetGet, "otp-reset-get")
 {
     if (argc != 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... otp-reset-get");
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-reset-get");
 
     std::list<std::string> result;
     ABC_CHECK(otpResetGet(result, loginDirList()));
@@ -102,8 +101,8 @@ COMMAND(InitLevel::context, OtpResetGet, "otp-reset-get")
 
 COMMAND(InitLevel::login, OtpResetRemove, "otp-reset-remove")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... otp-reset-remove <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli otp-reset-remove");
 
     ABC_CHECK(otpResetRemove(*session.login));
 

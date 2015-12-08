@@ -8,10 +8,6 @@
 #include "../Command.hpp"
 #include "../Util.hpp"
 #include "../../abcd/General.hpp"
-#include "../../abcd/account/Account.hpp"
-#include "../../abcd/json/JsonBox.hpp"
-#include "../../abcd/login/Login.hpp"
-#include "../../abcd/util/FileIO.hpp"
 #include "../../abcd/util/Util.hpp"
 #include "../../abcd/wallet/Wallet.hpp"
 #include <bitcoin/bitcoin.hpp>
@@ -19,56 +15,12 @@
 
 using namespace abcd;
 
-COMMAND(InitLevel::context, AccountAvailable, "account-available")
-{
-    if (argc != 1)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... account-available <user>");
-    ABC_CHECK_OLD(ABC_AccountAvailable(argv[0], &error));
-    return Status();
-}
-
-COMMAND(InitLevel::account, AccountDecrypt, "account-decrypt")
-{
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... account-decrypt <user> <pass> <filename>\n"
-                         "note: The filename is account-relative.");
-
-    JsonBox box;
-    ABC_CHECK(box.load(session.account->dir() + argv[2]));
-
-    DataChunk data;
-    ABC_CHECK(box.decrypt(data, session.login->dataKey()));
-    std::cout << toString(data) << std::endl;
-
-    return Status();
-}
-
-COMMAND(InitLevel::account, AccountEncrypt, "account-encrypt")
-{
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... account-encrypt <user> <pass> <filename>\n"
-                         "note: The filename is account-relative.");
-
-    DataChunk contents;
-    ABC_CHECK(fileLoad(contents, session.account->dir() + argv[2]));
-
-    JsonBox box;
-    ABC_CHECK(box.encrypt(contents, session.login->dataKey()));
-
-    std::cout << box.encode() << std::endl;
-
-    return Status();
-}
-
 COMMAND(InitLevel::login, ChangePassword, "change-password")
 {
-    if (argc != 4)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... change-password <user> <pass> <new-pass>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli change-password <new-pass>");
 
-    ABC_CHECK_OLD(ABC_ChangePassword(session.username, session.password, argv[2],
+    ABC_CHECK_OLD(ABC_ChangePassword(session.username, session.password, argv[0],
                                      &error));
 
     return Status();
@@ -76,20 +28,20 @@ COMMAND(InitLevel::login, ChangePassword, "change-password")
 
 COMMAND(InitLevel::lobby, ChangePasswordRecovery, "change-password-recovery")
 {
-    if (argc != 4)
+    if (argc != 2 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... change-password-recovery <user> <ra> <new-pass>");
+                         "usage: abc-cli change-password-recovery <ra> <new-pass>");
 
-    ABC_CHECK_OLD(ABC_ChangePasswordWithRecoveryAnswers(session.username, argv[1],
-                  argv[2], &error));
+    ABC_CHECK_OLD(ABC_ChangePasswordWithRecoveryAnswers(session.username, argv[0],
+                  argv[1], &error));
 
     return Status();
 }
 
 COMMAND(InitLevel::context, CheckPassword, "check-password")
 {
-    if (argc != 1)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... check-password <pass>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli check-password <pass>");
 
     double secondsToCrack;
     unsigned int count = 0;
@@ -109,9 +61,9 @@ COMMAND(InitLevel::context, CheckPassword, "check-password")
 
 COMMAND(InitLevel::lobby, CheckRecoveryAnswers, "check-recovery-answers")
 {
-    if (argc != 2)
+    if (argc != 2 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... check-recovery-answers <user> <ras>");
+                         "usage: abc-cli check-recovery-answers <user> <ras>");
 
     AutoString szQuestions;
     ABC_CHECK_OLD(ABC_GetRecoveryQuestions(session.username, &szQuestions.get(),
@@ -126,21 +78,10 @@ COMMAND(InitLevel::lobby, CheckRecoveryAnswers, "check-recovery-answers")
     return Status();
 }
 
-COMMAND(InitLevel::context, CreateAccount, "create-account")
-{
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... create-account <user> <pass>");
-
-    ABC_CHECK_OLD(ABC_CreateAccount(argv[0], argv[1], &error));
-    ABC_CHECK_OLD(ABC_SetPIN(argv[2], argv[3], "1234", &error));
-
-    return Status();
-}
-
 COMMAND(InitLevel::account, DataSync, "data-sync")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... data-sync <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli data-sync>");
 
     ABC_CHECK(syncAll(*session.account));
 
@@ -150,7 +91,7 @@ COMMAND(InitLevel::account, DataSync, "data-sync")
 COMMAND(InitLevel::context, GeneralUpdate, "general-update")
 {
     if (argc != 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... general-update");
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli general-update");
 
     ABC_CHECK(generalUpdate());
 
@@ -179,7 +120,7 @@ COMMAND(InitLevel::wallet, GenerateAddresses, "generate-addresses")
 COMMAND(InitLevel::context, GetQuestionChoices, "get-question-choices")
 {
     if (argc != 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... get-question-choices");
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli get-question-choices");
 
     AutoFree<tABC_QuestionChoices, ABC_FreeQuestionChoices> pChoices;
     ABC_CHECK_OLD(ABC_GetQuestionChoices(&pChoices.get(), &error));
@@ -197,8 +138,8 @@ COMMAND(InitLevel::context, GetQuestionChoices, "get-question-choices")
 
 COMMAND(InitLevel::lobby, GetQuestions, "get-questions")
 {
-    if (argc != 1)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... get-questions <user>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli get-questions <user>");
 
     AutoString questions;
     ABC_CHECK_OLD(ABC_GetRecoveryQuestions(session.username, &questions.get(),
@@ -210,8 +151,8 @@ COMMAND(InitLevel::lobby, GetQuestions, "get-questions")
 
 COMMAND(InitLevel::login, GetSettings, "get-settings")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... get-settings <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli get-settings");
 
     AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> pSettings;
     ABC_CHECK_OLD(ABC_LoadAccountSettings(session.username, session.password,
@@ -245,7 +186,7 @@ COMMAND(InitLevel::login, GetSettings, "get-settings")
 COMMAND(InitLevel::context, ListAccounts, "list-accounts")
 {
     if (argc != 0)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... list-accounts");
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli list-accounts");
 
     AutoString usernames;
     ABC_CHECK_OLD(ABC_ListAccounts(&usernames.get(), &error));
@@ -256,8 +197,8 @@ COMMAND(InitLevel::context, ListAccounts, "list-accounts")
 
 COMMAND(InitLevel::lobby, PinLogin, "pin-login")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... pin-login <user> <pin>");
+    if (argc != 2 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli pin-login <user> <pin>");
 
     bool bExists;
     ABC_CHECK_OLD(ABC_PinLoginExists(session.username, &bExists, &error));
@@ -276,8 +217,8 @@ COMMAND(InitLevel::lobby, PinLogin, "pin-login")
 
 COMMAND(InitLevel::account, PinLoginSetup, "pin-login-setup")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... pin-login-setup <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli pin-login-setup");
 
     ABC_CHECK_OLD(ABC_PinSetup(session.username, session.password, &error));
 
@@ -286,16 +227,15 @@ COMMAND(InitLevel::account, PinLoginSetup, "pin-login-setup")
 
 COMMAND(InitLevel::login, RecoveryReminderSet, "recovery-reminder-set")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... recovery-reminder-set <user> <pass> <n>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli recovery-reminder-set <n>");
 
     AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> pSettings;
     ABC_CHECK_OLD(ABC_LoadAccountSettings(session.username, session.password,
                                           &pSettings.get(), &error));
     printf("Old Reminder Count: %d\n", pSettings->recoveryReminderCount);
 
-    pSettings->recoveryReminderCount = strtol(argv[2], 0, 10);
+    pSettings->recoveryReminderCount = strtol(argv[0], 0, 10);
     ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username, session.password,
                                             pSettings, &error));
 
@@ -304,13 +244,13 @@ COMMAND(InitLevel::login, RecoveryReminderSet, "recovery-reminder-set")
 
 COMMAND(InitLevel::wallet, SearchBitcoinSeed, "search-bitcoin-seed")
 {
-    if (argc != 6)
+    if (argc != 3 || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... search-bitcoin-seed <user> <pass> <wallet-name> <addr> <start> <end>");
+                         "usage: abc-cli search-bitcoin-seed <addr> <start> <end>");
 
-    long start = strtol(argv[4], 0, 10);
-    long end = strtol(argv[5], 0, 10);
-    char *szMatchAddr = argv[3];
+    long start = strtol(argv[1], 0, 10);
+    long end = strtol(argv[2], 0, 10);
+    char *szMatchAddr = argv[0];
 
     bc::hd_private_key m(session.wallet->bitcoinKey());
     bc::hd_private_key m0 = m.generate_private_key(0);
@@ -336,44 +276,31 @@ COMMAND(InitLevel::wallet, SearchBitcoinSeed, "search-bitcoin-seed")
 
 COMMAND(InitLevel::account, SetNickname, "set-nickname")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... set-nickname <user> <pass> <name>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli set-nickname <name>");
 
     AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> pSettings;
     ABC_CHECK_OLD(ABC_LoadAccountSettings(session.username, session.password,
                                           &pSettings.get(), &error));
     free(pSettings->szNickname);
-    pSettings->szNickname = strdup(argv[2]);
+    pSettings->szNickname = strdup(argv[0]);
     ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username, session.password,
                                             pSettings, &error));
 
     return Status();
 }
 
-COMMAND(InitLevel::lobby, SignIn, "sign-in")
+COMMAND(InitLevel::login, SignIn, "sign-in")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... sign-in <user> <pass>");
-
-    tABC_Error error;
-    tABC_CC cc = ABC_SignIn(session.username, argv[1], &error);
-    if (ABC_CC_InvalidOTP == cc)
-    {
-        AutoString date;
-        ABC_CHECK_OLD(ABC_OtpResetDate(&date.get(), &error));
-        if (strlen(date))
-            std::cout << "Pending OTP reset ends at " << date.get() << std::endl;
-        std::cout << "No OTP token, resetting account 2-factor auth." << std::endl;
-        ABC_CHECK_OLD(ABC_OtpResetSet(session.username, &error));
-    }
-
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli sign-in");
     return Status();
 }
 
 COMMAND(InitLevel::account, UploadLogs, "upload-logs")
 {
-    if (argc != 2)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... upload-logs <user> <pass>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli upload-logs");
 
     // TODO: Command non-functional without a watcher thread!
     ABC_CHECK_OLD(ABC_UploadLogs(session.username, session.password, &error));

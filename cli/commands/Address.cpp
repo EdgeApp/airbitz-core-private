@@ -6,6 +6,7 @@
  */
 
 #include "../Command.hpp"
+#include "../../abcd/util/Util.hpp"
 #include "../../abcd/wallet/Wallet.hpp"
 #include <unistd.h>
 #include <signal.h>
@@ -15,9 +16,8 @@ using namespace abcd;
 
 COMMAND(InitLevel::wallet, CliAddressList, "address-list")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... address-list <user> <pass> <wallet>");
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli address-list");
 
     auto list = session.wallet->addresses.list();
     for (const auto &i: list)
@@ -29,5 +29,33 @@ COMMAND(InitLevel::wallet, CliAddressList, "address-list")
                   (address.recyclable ? "recyclable" : "used") << std::endl;
     }
 
+    return Status();
+}
+
+COMMAND(InitLevel::wallet, CliAddressGenerate, "address-generate")
+{
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli address-generate <count>");
+
+    for(int c = 0; c < atol(argv[0]); c++)
+    {
+        tABC_TxDetails txDetails;
+        AutoString requestId;
+        ABC_CHECK_OLD(ABC_CreateReceiveRequest(session.username,
+                                               session.password,
+                                               session.uuid,
+                                               &txDetails,
+                                               &requestId.get(),
+                                               &error
+                                              ));
+
+        ABC_CHECK_OLD(ABC_FinalizeReceiveRequest(session.username,
+                      session.password,
+                      session.uuid,
+                      requestId,
+                      &error
+                                                ));
+        std::cout << requestId << std::endl;
+    }
     return Status();
 }

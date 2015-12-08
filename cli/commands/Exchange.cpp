@@ -8,6 +8,7 @@
 #include "../Command.hpp"
 #include "../../abcd/Context.hpp"
 #include <iostream>
+#include <string.h>
 
 using namespace abcd;
 
@@ -34,13 +35,12 @@ COMMAND(InitLevel::context, ExchangeFetch, "exchange-fetch")
 
 COMMAND(InitLevel::account, ExchangeUpdate, "exchange-update")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... get-exchange-rate <user> <pass> <currency>");
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli get-exchange-rate <currency>");
 
     Currency currency;
-    ABC_CHECK(currencyNumber(currency, argv[2]));
-    ABC_CHECK_OLD(ABC_RequestExchangeRateUpdate(argv[0], argv[1],
+    ABC_CHECK(currencyNumber(currency, argv[0]));
+    ABC_CHECK_OLD(ABC_RequestExchangeRateUpdate(session.username, session.password,
                   static_cast<int>(currency), &error));
 
     double rate;

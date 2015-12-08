@@ -14,9 +14,9 @@ using namespace abcd;
 
 COMMAND(InitLevel::login, BitidLogin, "bitid-login")
 {
-    if (argc != 3)
-        return ABC_ERROR(ABC_CC_Error, "usage: ... bitid-login <user> <pass> <uri>");
-    const char *uri = argv[2];
+    if (argc != 1 || strcmp(argv[0], "help") == 0)
+        return ABC_ERROR(ABC_CC_Error, "usage: abc-cli bitid-login <uri>");
+    const char *uri = argv[0];
 
     Uri callback;
     ABC_CHECK(bitidCallback(callback, uri, false));
@@ -30,12 +30,12 @@ COMMAND(InitLevel::login, BitidLogin, "bitid-login")
 
 COMMAND(InitLevel::login, BitidAddressSignature, "bitid-sign")
 {
-    if (argc < 4 || 5 < argc)
+    if (argc < 2 || 3 < argc || strcmp(argv[0], "help") == 0)
         return ABC_ERROR(ABC_CC_Error,
-                         "usage: ... bitid-sign <user> <pass> <uri> <message> [<index>]");
-    const char *uri = argv[2];
-    const char *message = argv[3];
-    int index = argc == 5 ? atoi(argv[4]) : 0;
+                         "usage: abc-cli bitid-sign <uri> <message> [<index>]");
+    const char *uri = argv[0];
+    const char *message = argv[1];
+    int index = argc == 5 ? atoi(argv[2]) : 0;
 
     Uri callback;
     ABC_CHECK(bitidCallback(callback, uri, false));
