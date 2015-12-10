@@ -153,6 +153,41 @@ StratumConnection::getAddressHistory(
     pending_[query.id()] = Pending{ decoder };
 }
 
+void
+StratumConnection::sendTx(
+    bc::client::obelisk_codec::error_handler onError,
+    bc::client::obelisk_codec::empty_handler onReply,
+    const bc::transaction_type tx)
+{
+    JsonArray params;
+    bc::data_chunk rawTx(satoshi_raw_size(tx));
+    bc::satoshi_save(tx, rawTx.begin());
+    params.append(json_string(libbitcoin::encode_hex(rawTx).c_str()));
+
+    RequestJson query;
+    query.idSet(lastId++);
+    query.methodSet("blockchain.transaction.broadcast");
+    query.paramsSet(params);
+    connection_.send(query.encode(true) + '\n');
+
+    // Set up a decoder for the reply:
+    auto decoder = [onError, onReply](ReplyJson message)
+    {
+        auto payload = message.result().get();
+
+        if (!json_is_string(payload)
+                || strcmp(json_string_value(payload), "TX decode failed") == 0)
+        {
+            onError(std::make_error_code(std::errc::bad_message));
+        }
+        else
+        {
+            onReply();
+        }
+    };
+    pending_[query.id()] = Pending{ decoder };
+}
+
 Status
 StratumConnection::connect(const std::string &hostname, int port)
 {

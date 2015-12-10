@@ -645,18 +645,15 @@ void TxUpdater::send_tx(const bc::transaction_type &tx)
 {
     for (auto &it: connections_)
     {
-        // TODO: support send_tx for Stratum
-        if (ConnectionType::stratum == it->type)
+        if (ConnectionType::libbitcoin == it->type)
             continue;
-
         auto on_error = [](const std::error_code &error) {};
 
         auto on_done = [this, tx]()
         {
             db_.unconfirmed(bc::hash_transaction(tx));
         };
-
-        it->bc_codec.broadcast_transaction(on_error, on_done, tx);
+        it->stratumCodec.sendTx(on_error, on_done, tx);
     }
 }
 
