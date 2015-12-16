@@ -29,7 +29,8 @@ constexpr unsigned fallbackFee = 10000;
 #define FALLBACK_BITCOIN_SERVERS {  "tcp://obelisk.airbitz.co:9091", \
                                     "stratum://stratum-az-wusa.airbitz.co:50001", \
                                     "stratum://stratum-az-wjapan.airbitz.co:50001", \
-                                    "stratum://stratum-az-neuro.airbitz.co:50001" }
+                                    "stratum://stratum-az-neuro.airbitz.co:50001", \
+                                    "stratums://stratum.airbitz.co:50002" }
 #define TESTNET_BITCOIN_SERVERS {   "tcp://obelisk-testnet.airbitz.co:9091" }
 #define GENERAL_INFO_FILENAME                   "Servers.json"
 #define GENERAL_ACCEPTABLE_INFO_FILE_AGE_SECS   (24 * 60 * 60) // how many seconds old can the info file before it should be updated
