@@ -157,7 +157,10 @@ generalBitcoinServers()
     }
 
     if (!out.size())
+    {
         out.push_back("tcp://obelisk.airbitz.co:9091");
+        out.push_back("stratums://satoshi-rs-dallas.airbitz.co:50002");
+    }
     return out;
 }
 
