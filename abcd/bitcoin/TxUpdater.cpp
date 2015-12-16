@@ -12,8 +12,10 @@ namespace abcd {
 
 #define LIBBITCOIN_PREFIX           "tcp://"
 #define STRATUM_PREFIX              "stratum://"
+#define STRATUM_SSL_PREFIX          "stratums://"
 #define LIBBITCOIN_PREFIX_LENGTH    6
 #define STRATUM_PREFIX_LENGTH       10
+#define STRATUM_SSL_PREFIX_LENGTH   11
 
 #define ALL_SERVERS                 -1
 #define NO_SERVERS                  -9999
@@ -109,7 +111,8 @@ TxUpdater::connect()
         for (size_t i = 0; i < serverList_.size(); ++i)
         {
             const auto &server = serverList_[i];
-            if (0 == server.compare(0, STRATUM_PREFIX_LENGTH, STRATUM_PREFIX))
+            if (0 == server.compare(0, STRATUM_PREFIX_LENGTH, STRATUM_PREFIX) ||
+                    0 == server.compare(0, STRATUM_SSL_PREFIX_LENGTH, STRATUM_SSL_PREFIX))
                 untriedStratum_.insert(i);
         }
     }
@@ -349,7 +352,8 @@ TxUpdater::connectTo(long index)
         if(!bconn->bc_socket.connect(server, key))
             return ABC_ERROR(ABC_CC_Error, "Could not connect to " + server);
     }
-    else if (0 == server.compare(0, STRATUM_PREFIX_LENGTH, STRATUM_PREFIX))
+    else if (0 == server.compare(0, STRATUM_PREFIX_LENGTH, STRATUM_PREFIX) ||
+             0 == server.compare(0, STRATUM_SSL_PREFIX_LENGTH, STRATUM_SSL_PREFIX))
     {
         // Stratum server:
         untriedStratum_.erase(index);

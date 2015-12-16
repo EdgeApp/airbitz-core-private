@@ -21,6 +21,7 @@ typedef std::chrono::milliseconds SleepTime;
 
 // Scheme used for stratum URI's:
 constexpr auto stratumScheme = "stratum";
+constexpr auto stratumSslScheme = "stratums";
 
 class StratumConnection
 {

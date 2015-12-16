@@ -204,7 +204,12 @@ StratumConnection::connect(const std::string &rawUri)
     if (!uri.decode(rawUri))
         return ABC_ERROR(ABC_CC_ParseError, "Bad URI - wrong format");
 
-    if (stratumScheme != uri.scheme())
+    bool ssl;
+    if (stratumScheme == uri.scheme())
+        ssl = false;
+    else if (stratumSslScheme == uri.scheme())
+        ssl = true;
+    else
         return ABC_ERROR(ABC_CC_ParseError, "Bad URI - wrong scheme");
 
     auto server = uri.authority();
@@ -215,7 +220,7 @@ StratumConnection::connect(const std::string &rawUri)
     auto serverPort = server.substr(last + 1, std::string::npos);
 
     // Connect to the server:
-    ABC_CHECK(connection_.connect(serverName, atoi(serverPort.c_str())));
+    ABC_CHECK(connection_.connect(serverName, atoi(serverPort.c_str()), ssl));
     lastKeepalive_ = std::chrono::steady_clock::now();
 
     return Status();
