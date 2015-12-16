@@ -31,7 +31,7 @@ public:
      * Connect to the specified server.
      */
     Status
-    connect(const std::string &hostname, unsigned port);
+    connect(const std::string &hostname, unsigned port, bool ssl);
 
     /**
      * Send some data over the socket.

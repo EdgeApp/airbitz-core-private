@@ -189,9 +189,9 @@ StratumConnection::sendTx(
 }
 
 Status
-StratumConnection::connect(const std::string &hostname, int port)
+StratumConnection::connect(const std::string &hostname, int port, bool ssl)
 {
-    ABC_CHECK(connection_.connect(hostname, port));
+    ABC_CHECK(connection_.connect(hostname, port, ssl));
     lastKeepalive_ = std::chrono::steady_clock::now();
     return Status();
 }

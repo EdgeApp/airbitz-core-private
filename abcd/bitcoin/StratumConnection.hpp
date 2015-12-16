@@ -53,7 +53,7 @@ public:
      * Connects to the specified stratum server.
      */
     Status
-    connect(const std::string &hostname, int port);
+    connect(const std::string &hostname, int port, bool ssl);
 
     /**
      * Performs any pending work,
