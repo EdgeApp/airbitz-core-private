@@ -10,8 +10,15 @@
 
 #include "../util/Status.hpp"
 #include "../util/Data.hpp"
+#include <openssl/ssl.h>
 
 namespace abcd {
+
+/**
+ * Init SSL
+ */
+Status
+initSSL();
 
 class TcpConnection
 {
@@ -23,10 +30,11 @@ public:
      * Connect to the specified server.
      */
     Status
-    connect(const std::string &hostname, unsigned port);
+    connect(const std::string &hostname, unsigned port, bool ssl=false);
 
     /**
      * Send some data over the socket.
+     * Will block until all the data is sent.
      */
     Status
     send(DataSlice data);
@@ -38,12 +46,20 @@ public:
     read(DataChunk &result);
 
     /**
-     * Obtains a list of sockets that the main loop should sleep on.
+     * Obtains a socket that the main loop should sleep on.
      */
     int pollfd() const { return fd_; }
 
 private:
+    /**
+     * Init SSL Context for this connection
+     */
+    Status
+    initSSLContext();
+
     int fd_;
+    SSL_CTX *ctx_;
+    SSL *ssl_;
 };
 
 } // namespace abcd
