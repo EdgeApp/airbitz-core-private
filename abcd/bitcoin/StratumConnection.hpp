@@ -23,6 +23,8 @@ class StratumConnection
 {
 public:
     typedef std::function<void (const std::string &version)> VersionHandler;
+    typedef std::function<void (const size_t &height, const size_t &index)>
+    HeightByTxHandler;
 
     /**
      * Requests the server version.
@@ -42,7 +44,16 @@ public:
     void getAddressHistory(
         bc::client::obelisk_codec::error_handler onError,
         bc::client::obelisk_codec::fetch_history_handler onReply,
-        const bc::payment_address &address, size_t fromHeight=0);
+        const bc::payment_address &address);
+
+    /**
+     * Get a transactions block height by the transaction id
+     */
+    void
+    getHeightByTx(
+        bc::client::obelisk_codec::error_handler onError,
+        HeightByTxHandler onReply,
+        const bc::hash_digest &txid);
 
     /**
      * Connects to the specified stratum server.

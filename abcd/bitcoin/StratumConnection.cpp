@@ -108,7 +108,7 @@ void
 StratumConnection::getAddressHistory(
     bc::client::obelisk_codec::error_handler onError,
     bc::client::obelisk_codec::fetch_history_handler onReply,
-    const bc::payment_address &address, size_t fromHeight)
+    const bc::payment_address &address)
 {
     JsonArray params;
     params.append(json_string(address.encoded().c_str()));
@@ -149,6 +149,35 @@ StratumConnection::getAddressHistory(
             history.push_back(row);
         }
         onReply(history);
+    };
+    pending_[query.id()] = Pending{ decoder };
+}
+
+
+void
+StratumConnection::getHeightByTx(
+    bc::client::obelisk_codec::error_handler onError,
+    HeightByTxHandler onReply,
+    const bc::hash_digest &txid)
+{
+    JsonArray params;
+    params.append(json_string(bc::encode_hash(txid).c_str()));
+
+    RequestJson query;
+    query.idSet(lastId++);
+    query.methodSet("blockchain.transaction.height");
+    query.paramsSet(params);
+    connection_.send(query.encode(true) + '\n');
+
+    // Set up a decoder for the reply:
+    auto decoder = [onError, onReply](ReplyJson message)
+    {
+        auto payload = message.result().get();
+
+        if (!json_is_number(payload))
+            onError(std::make_error_code(std::errc::bad_message));
+        else
+            onReply(json_number_value(payload), 0);
     };
     pending_[query.id()] = Pending{ decoder };
 }
