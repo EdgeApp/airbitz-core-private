@@ -15,6 +15,16 @@
 
 namespace abcd {
 
+
+Status
+initSSL()
+{
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+    return Status();
+}
+
 static int
 timeoutConnect(int sock, struct sockaddr *addr,
                socklen_t addr_len, struct timeval *tv)
@@ -54,15 +64,36 @@ TcpConnection::~TcpConnection()
 {
     if (0 < fd_)
         close(fd_);
+    if (nullptr != ssl_)
+        SSL_free(ssl_);
+    if (nullptr != ctx_)
+        SSL_CTX_free(ctx_);
 }
 
 TcpConnection::TcpConnection():
-    fd_(0)
+    fd_(0),
+    ctx_(nullptr),
+    ssl_(nullptr)
 {
 }
 
 Status
-TcpConnection::connect(const std::string &hostname, unsigned port)
+TcpConnection::initSSLContext()
+{
+    auto method = SSLv23_method();
+    auto ctx = SSL_CTX_new(method);
+    if (ctx == nullptr)
+    {
+        ABC_ERROR(ABC_CC_ServerError, "Cannot initialize SSL");
+    }
+
+    ctx_ = ctx;
+    ssl_ = SSL_new(ctx_);
+    return Status();
+}
+
+Status
+TcpConnection::connect(const std::string &hostname, unsigned port, bool ssl)
 {
     // Do the DNS lookup:
     struct addrinfo hints {};
@@ -91,15 +122,29 @@ TcpConnection::connect(const std::string &hostname, unsigned port)
     if (fd_ < 0)
         return ABC_ERROR(ABC_CC_ServerError, "Cannot connect to " + hostname);
 
+    if(ssl)
+    {
+        // Setup SSL
+        ABC_CHECK(initSSLContext());
+        SSL_set_fd(ssl_, fd_);
+        if (SSL_connect(ssl_) != 1 || SSL_get_peer_certificate(ssl_) == nullptr)
+            return ABC_ERROR(ABC_CC_ServerError, "SSL connection to " + hostname
+                             + " failed.");
+    }
     return Status();
 }
 
 Status
 TcpConnection::send(DataSlice data)
 {
+    int bytes = 0;
     while (data.size())
     {
-        auto bytes = ::send(fd_, data.data(), data.size(), 0);
+        if(ssl_ != nullptr)  //Check if connection uses SSL
+            bytes = SSL_write(ssl_, data.data(), data.size());
+        else
+            bytes = ::send(fd_, data.data(), data.size(), 0);
+
         if (bytes < 0)
             return ABC_ERROR(ABC_CC_ServerError, "Failed to send");
 
@@ -112,17 +157,45 @@ TcpConnection::send(DataSlice data)
 Status
 TcpConnection::read(DataChunk &result)
 {
+    int bytes = 0;
     unsigned char data[1024];
-    auto bytes = recv(fd_, data, sizeof(data), MSG_DONTWAIT);
-    if (bytes < 0)
+
+    if(ssl_ != nullptr)  //Check if connection uses SSL
     {
-        if (EAGAIN != errno && EWOULDBLOCK != errno)
-            return ABC_ERROR(ABC_CC_ServerError, "Cannot read from socket");
-
-        // No data, but that's fine:
-        bytes = 0;
+        if(SSL_pending(ssl_) != 0)
+        {
+            bytes = SSL_read(ssl_, data, sizeof(data));
+            int32_t sslError = SSL_get_error (ssl_, bytes);
+            switch (sslError)
+            {
+            case SSL_ERROR_NONE:
+                break;
+            case SSL_ERROR_WANT_READ:
+                return ABC_ERROR(ABC_CC_ServerError, "SSL_ERROR_WANT_READ\n");
+                break;
+            case SSL_ERROR_WANT_WRITE:
+                return ABC_ERROR(ABC_CC_ServerError, "SSL_ERROR_WANT_WRITE\n");
+                break;
+            case SSL_ERROR_ZERO_RETURN:
+                return ABC_ERROR(ABC_CC_ServerError, "SSL_ERROR_ZERO_RETURN\n");
+                break;
+            default:
+                break;
+            }
+        }
     }
+    else
+    {
+        bytes = recv(fd_, data, sizeof(data), MSG_DONTWAIT);
+        if (bytes < 0)
+        {
+            if (EAGAIN != errno && EWOULDBLOCK != errno)
+                return ABC_ERROR(ABC_CC_ServerError, "Cannot read from socket");
 
+            // No data, but that's fine:
+            bytes = 0;
+        }
+    }
     result = DataChunk(data, data + bytes);
     return Status();
 }

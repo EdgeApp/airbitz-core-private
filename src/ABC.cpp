@@ -40,6 +40,7 @@
 #include "../abcd/account/AccountCategories.hpp"
 #include "../abcd/account/PluginData.hpp"
 #include "../abcd/auth/LoginServer.hpp"
+#include "../abcd/bitcoin/TcpConnection.hpp"
 #include "../abcd/bitcoin/Testnet.hpp"
 #include "../abcd/bitcoin/Text.hpp"
 #include "../abcd/bitcoin/TxDatabase.hpp"
@@ -152,6 +153,8 @@ tABC_CC ABC_Initialize(const char                   *szRootDir,
 
         ABC_CHECK_NEW(httpInit());
         ABC_CHECK_NEW(syncInit(szCaCertPath));
+
+        ABC_CHECK_NEW(initSSL());
     }
 
 exit:

@@ -44,11 +44,16 @@ public:
         bc::client::obelisk_codec::fetch_history_handler onReply,
         const bc::payment_address &address, size_t fromHeight=0);
 
+    void sendTx(
+        bc::client::obelisk_codec::error_handler onError,
+        bc::client::obelisk_codec::empty_handler onReply,
+        const bc::transaction_type tx);
+
     /**
      * Connects to the specified stratum server.
      */
     Status
-    connect(const std::string &hostname, int port);
+    connect(const std::string &hostname, int port, bool ssl);
 
     /**
      * Performs any pending work,
