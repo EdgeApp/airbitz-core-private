@@ -597,22 +597,15 @@ void TxUpdater::get_index(bc::hash_digest txid, int server_index)
 
     for (auto &it: connections_)
     {
-        // TODO: support get_index for Stratum
-        if (ConnectionType::stratum == it->type)
-            continue;
-
         Connection &bconn = *it;
 
-        // TODO: Removing the code below might cause unnecessary server load. Since Stratum can't query
-        // txid height using just a txid, we have to rely on Libbitcoin to do this.
+        // If there is a preferred server index to use. Only query that server
+        if (ALL_SERVERS != server_index)
+        {
+            if (bconn.server_index != server_index)
+                continue;
+        }
 
-//        // If there is a preferred server index to use. Only query that server
-//        if (ALL_SERVERS != server_index)
-//        {
-//            if (bconn.server_index != server_index)
-//                continue;
-//        }
-//
         auto idx = bconn.server_index;
         auto on_error = [this, txid, idx, &bconn](const std::error_code &error)
         {
@@ -637,7 +630,11 @@ void TxUpdater::get_index(bc::hash_digest txid, int server_index)
         };
 
         bconn.queued_get_indices_++;
-        bconn.bc_codec.fetch_transaction_index(on_error, on_done, txid);
+
+        if (ConnectionType::stratum == it->type)
+            bconn.stratumCodec.getHeightByTx(on_error, on_done, txid);
+        else
+            bconn.bc_codec.fetch_transaction_index(on_error, on_done, txid);
     }
 }
 
