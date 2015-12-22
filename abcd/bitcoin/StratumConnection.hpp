@@ -23,6 +23,7 @@ class StratumConnection
 {
 public:
     typedef std::function<void (const std::string &version)> VersionHandler;
+    typedef std::function<void (const double &fee)> FeeEstimateHandler;
 
     /**
      * Requests the server version.
@@ -43,6 +44,15 @@ public:
         bc::client::obelisk_codec::error_handler onError,
         bc::client::obelisk_codec::fetch_history_handler onReply,
         const bc::payment_address &address, size_t fromHeight=0);
+
+    /**
+     * Requests an estimated transaction fee per kilobyte to be included within
+     the next X blocks
+     */
+    void getFeeEstimate(
+        bc::client::obelisk_codec::error_handler onError,
+        FeeEstimateHandler onReply,
+        const uint &blocks=1);
 
     /**
      * Connects to the specified stratum server.
