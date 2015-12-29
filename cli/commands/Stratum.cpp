@@ -52,7 +52,11 @@ COMMAND(InitLevel::context, CliStratumVersion, "stratum-version",
             nullptr, c.pollfd(), ZMQ_POLLIN, ZMQ_POLLOUT
         };
         long timeout = sleep.count() ? sleep.count() : -1;
+        if (10000 < timeout)
+            timeout = 10000;
         zmq_poll(&pollitem, 1, timeout);
+
+        std::cout << "Wakeup" << std::endl;
     }
 
     return Status();

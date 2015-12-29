@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <poll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -25,39 +26,51 @@ initSSL()
     return Status();
 }
 
+/**
+ * Creates a non-blocking socket and attempts to connect it.
+ * @param timeout milliseconds to wait for the server.
+ */
 static int
-timeoutConnect(int sock, struct sockaddr *addr,
-               socklen_t addr_len, struct timeval *tv)
+socketConnect(struct addrinfo *target, int timeout)
 {
-    fd_set fdset;
-    int flags = 0;
+    int fd = socket(target->ai_family, target->ai_socktype,
+                    target->ai_protocol);
+    if (fd < 0)
+        return -1;
+
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0)
+    {
+        close(fd);
+        return -1;
+    }
+
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
+    {
+        close(fd);
+        return -1;
+    }
+
+    if (0 == connect(fd, target->ai_addr, target->ai_addrlen))
+        return fd;
+
+    struct pollfd pfd = {fd, POLLOUT, 0};
+    if (poll(&pfd, 1, timeout) < 1)
+    {
+        close(fd);
+        return -1;
+    }
+
     int so_error;
     socklen_t len = sizeof(so_error);
-
-    if ((flags = fcntl(sock, F_GETFL, 0)) < 0)
-        return -1;
-
-    if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0)
-        return -1;
-
-    if (connect(sock, addr, addr_len) == 0)
-        goto exit;
-
-    FD_ZERO(&fdset);
-    FD_SET(sock, &fdset);
-
-    if (select(sock + 1, NULL, &fdset, NULL, tv) > 0)
+    getsockopt(fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
+    if (so_error)
     {
-        getsockopt(sock, SOL_SOCKET, SO_ERROR, &so_error, &len);
-        if (so_error == 0)
-            goto exit;
-    }
-    return -1;
-
-exit:
-    if (fcntl(sock, F_SETFL, flags) < 0)
+        close(fd);
         return -1;
-    return 0;
+    }
+
+    return fd;
 }
 
 TcpConnection::~TcpConnection()
@@ -91,18 +104,9 @@ TcpConnection::connect(const std::string &hostname, unsigned port, bool ssl)
     // Try the returned DNS entries until one connects:
     for (struct addrinfo *p = list; p; ++p)
     {
-        fd_ = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        if (fd_ < 0)
-            return ABC_ERROR(ABC_CC_ServerError, "Cannot create socket");
-
-        struct timeval sto;
-        sto.tv_sec = 10;
-        sto.tv_usec = 0;
-        if (0 == timeoutConnect(fd_, p->ai_addr, p->ai_addrlen, &sto))
+        auto fd = socketConnect(p, 10000);
+        if (fd)
             break;
-
-        close(fd_);
-        fd_ = 0;
     }
     if (fd_ < 0)
         return ABC_ERROR(ABC_CC_ServerError, "Cannot connect to " + hostname);
@@ -147,7 +151,7 @@ TcpConnection::read(DataChunk &result)
 
     if(ssl_)
     {
-        if(SSL_pending(ssl_))
+        if(true || SSL_pending(ssl_))
         {
             bytes = SSL_read(ssl_, data, sizeof(data));
             auto sslError = SSL_get_error(ssl_, bytes);
@@ -189,7 +193,7 @@ TcpConnection::read(DataChunk &result)
 Status
 TcpConnection::initSSLContext()
 {
-    auto method = SSLv23_method();
+    auto method = SSLv23_method(); // Highest available SSL/TLS version
     ctx_ = SSL_CTX_new(method);
     if (!ctx_)
         return ABC_ERROR(ABC_CC_ServerError, "Cannot initialize SSL context");
