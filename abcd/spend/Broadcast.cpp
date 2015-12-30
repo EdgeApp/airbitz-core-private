@@ -19,45 +19,17 @@
 namespace abcd {
 
 static Status
-blockcypherPostTx(DataSlice tx)
+insightPostTx(DataSlice tx)
 {
-    const char *url = isTestnet() ?
-                      "https://api.blockcypher.com/v1/btc/test3/txs/push":
-                      "https://api.blockcypher.com/v1/btc/main/txs/push";
+    std::string body = "rawtx=" + base16Encode(tx);
 
-    struct BlockcypherJson:
-        public JsonObject
-    {
-        ABC_JSON_STRING(tx, "tx", nullptr);
-    } json;
-    json.txSet(base16Encode(tx));
+    const char *url = isTestnet() ?
+                      "https://test-insight.bitpay.com/api/tx/send":
+                      "https://insight.bitpay.com/api/tx/send";
 
     HttpReply reply;
-    ABC_CHECK(HttpRequest().post(reply, url, json.encode()));
-    ABC_CHECK(reply.codeOk());
-
-    return Status();
-}
-
-static Status
-chainPostTx(DataSlice tx)
-{
-    static const std::string auth =
-        "Basic " + base64Encode(gContext->chainApiUserPwd());
-    const char *url = isTestnet() ?
-                      "https://api.chain.com/v2/testnet3/transactions/send":
-                      "https://api.chain.com/v2/bitcoin/transactions/send";
-
-    struct ChainJson:
-        public JsonObject
-    {
-        ABC_JSON_STRING(hex, "signed_hex", nullptr);
-    } json;
-    json.hexSet(base16Encode(tx));
-
-    HttpReply reply;
-    ABC_CHECK(HttpRequest().header("Authorization", auth).
-              post(reply, url, json.encode()));
+    ABC_CHECK(HttpRequest().
+              post(reply, url, body));
     ABC_CHECK(reply.codeOk());
 
     return Status();
@@ -129,27 +101,24 @@ broadcastTx(DataSlice rawTx)
     auto cv = std::make_shared<std::condition_variable>();
     auto t1 = std::make_shared<BroadcastThread>(cv);
     auto t2 = std::make_shared<BroadcastThread>(cv);
-    auto t3 = std::make_shared<BroadcastThread>(cv);
 
     // Launch the broadcasts:
     DataChunk tx(rawTx.begin(), rawTx.end());
-    std::thread(BroadcastThread::run<chainPostTx>, t1, tx).detach();
-    std::thread(BroadcastThread::run<blockchainPostTx>, t2, tx).detach();
-    std::thread(BroadcastThread::run<blockcypherPostTx>, t3, tx).detach();
+    std::thread(BroadcastThread::run<blockchainPostTx>, t1, tx).detach();
+    std::thread(BroadcastThread::run<insightPostTx>, t2, tx).detach();
 
     // Loop as long as any thread is still running:
-    while (!t1->done() || !t2->done() || !t3->done())
+    while (!t1->done() || !t2->done())
     {
         cv->wait(lock);
         // Quit immediately if one has succeeded:
         if ((t1->done() && t1->status()) ||
-                (t2->done() && t2->status()) ||
-                (t3->done() && t3->status()))
+                (t2->done() && t2->status()))
             return Status();
     }
 
     // We only get here if all three have failed:
-    return t3->status();
+    return t2->status();
 }
 
 } // namespace abcd
