@@ -24,7 +24,7 @@ class Watcher:
     public TxCallbacks
 {
 public:
-    Watcher(TxDatabase &db);
+    Watcher(Wallet &wallet);
 
     // - Updater messages: -------------
     void disconnect();

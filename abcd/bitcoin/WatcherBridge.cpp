@@ -68,7 +68,7 @@ private:
 public:
     WatcherInfo(Wallet &wallet):
         parent_(wallet.shared_from_this()),
-        watcher(wallet.txdb),
+        watcher(wallet),
         wallet(wallet)
     {
     }

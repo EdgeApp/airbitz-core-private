@@ -18,7 +18,6 @@ struct BitcoinJson:
     public JsonObject
 {
     ABC_JSON_CONSTRUCTORS(BitcoinJson, JsonObject)
-
     ABC_JSON_INTEGER(labelType, "labeltype", ABC_DENOMINATION_UBTC) // Required
     ABC_JSON_INTEGER(satoshi, "satoshi", 100) // Required
 };
@@ -55,6 +54,7 @@ struct SettingsJson:
     ABC_JSON_STRING(language, "language", "en") // Required
     ABC_JSON_INTEGER(numCurrency, "numCurrency",
                      static_cast<int>(Currency::USD)) // Required
+    ABC_JSON_STRING(stratumServer, "stratumServer", "")
 
     // TODO: Use a string for the currency. Not all currencies have codes.
 };
@@ -128,6 +128,8 @@ accountSettingsLoad(const Account &account)
     out->szExchangeRateSource = stringCopy(json.exchangeRateSource());
     out->szLanguage = stringCopy(json.language());
     out->currencyNum = static_cast<int>(json.numCurrency());
+    out->szStratumServer = json.stratumServerOk() ? stringCopy(
+                               json.stratumServer()) : nullptr;
 
     out->szFullName = stringCopy(label(out));
 
@@ -175,6 +177,8 @@ accountSettingsSave(const Account &account, tABC_AccountSettings *pSettings)
     ABC_CHECK(json.exchangeRateSourceSet(pSettings->szExchangeRateSource));
     ABC_CHECK(json.languageSet(pSettings->szLanguage));
     ABC_CHECK(json.numCurrencySet(pSettings->currencyNum));
+    if (pSettings->szStratumServer)
+        ABC_CHECK(json.stratumServerSet(pSettings->szStratumServer));
 
     ABC_CHECK(json.save(settingsPath(account), account.login.dataKey()));
 
@@ -193,6 +197,7 @@ accountSettingsFree(tABC_AccountSettings *pSettings)
         ABC_FREE_STR(pSettings->szLanguage);
         ABC_FREE_STR(pSettings->szPIN);
         ABC_FREE_STR(pSettings->szExchangeRateSource);
+        ABC_FREE_STR(pSettings->szStratumServer);
 
         ABC_CLEAR_FREE(pSettings, sizeof(tABC_AccountSettings));
     }
