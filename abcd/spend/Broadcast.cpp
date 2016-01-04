@@ -6,13 +6,16 @@
  */
 
 #include "Broadcast.hpp"
+#include "../account/AccountSettings.hpp"
 #include "../bitcoin/Testnet.hpp"
 #include "../bitcoin/WatcherBridge.hpp"
 #include "../Context.hpp"
 #include "../crypto/Encoding.hpp"
 #include "../http/HttpRequest.hpp"
 #include "../json/JsonObject.hpp"
+#include "../util/AutoFree.hpp"
 #include "../util/Debug.hpp"
+#include "../wallet/Wallet.hpp"
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -94,8 +97,8 @@ broadcastTask(std::shared_ptr<Syncer> syncer,
     syncer->cv.notify_all();
 }
 
-Status
-broadcastTx(Wallet &self, DataSlice rawTx)
+static Status
+broadcastTxAll(Wallet &self, DataSlice rawTx)
 {
     // Create communication resources:
     auto syncer = std::make_shared<Syncer>();
@@ -145,6 +148,60 @@ broadcastTx(Wallet &self, DataSlice rawTx)
     }
 
     return Status();
+}
+
+static Status
+broadcastTxStratum(Wallet &self, DataSlice rawTx)
+{
+    // Create communication resources:
+    auto syncer = std::make_shared<Syncer>();
+    auto s3 = std::make_shared<DelayedStatus>();
+
+    // Queue up an async broadcast over the TxUpdater:
+    auto updaterDone = [syncer, s3](Status s)
+    {
+        {
+            std::lock_guard<std::mutex> lock(syncer->mutex);
+            s3->status = s;
+            s3->done = true;
+            if (s)
+                ABC_DebugLog("Stratum broadcast OK");
+            else
+                s.log();
+        }
+        syncer->cv.notify_all();
+    };
+    ABC_CHECK(watcherSend(self, updaterDone, rawTx));
+
+    // Loop as long as the thread is still running:
+    while ((!(s3->done && s3->status)))
+    {
+        // If the broadcast is done, but we have an error:
+        if (s3->done)
+            return s3->status;
+
+        // Wait for the condition variable, which also acquires the lock:
+        std::unique_lock<std::mutex> lock(syncer->mutex);
+        syncer->cv.wait(lock);
+    }
+
+    return Status();
+}
+
+Status
+broadcastTx(Wallet &self, DataSlice rawTx)
+{
+    tABC_Error error;
+    AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> settings;
+    ABC_CHECK_OLD(ABC_AccountSettingsLoad(self.account, &settings.get(),
+                                          &error));
+
+    if (settings->szStratumServer)
+    {
+        return broadcastTxStratum(self, rawTx);
+    }
+    else
+        return broadcastTxAll(self, rawTx);
 }
 
 } // namespace abcd
