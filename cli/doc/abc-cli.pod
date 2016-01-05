@@ -194,6 +194,19 @@ Uploads the logs.
 
 Requires a working directory, username and password.
 
+=item B<set-stratum-server> <url>
+
+Sets ABC to connect only to <url> Stratum (Electrum) server for all communication with the blockchain.
+The <url> format is stratum://electrum.dragonzone.net:50001 or stratums://electrum.dragonzone.net:50001 for SSL.
+
+Requires a working directory, username and password.
+
+=item B<reset-stratum-server>
+
+ABC will use the default Stratum and Libbitcoin server list from Airbitz.
+
+Requires a working directory, username and password.
+
 =back
 
 =head2 SPEND COMMANDS
@@ -401,5 +414,22 @@ Requires a working directory, username and password.
 Removes the entire key/value store for a particular plugin.
 
 Requires a working directory, username and password.
+
+=back
+
+=head2 DEBUG COMMANDS
+
+=over 10
+
+=item B<watcher-dump> <filename>
+
+Display the watcher database contents. Optionally dump to <filename> instead of CL.
+
+Requires a working directory, username, password and wallet.
+
+=item B<watcher-dump-file> <filename>
+
+Display a watcher database file contents from disk.
+Requires a working directory, username, password and wallet.
 
 =back

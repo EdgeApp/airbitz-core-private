@@ -13,6 +13,7 @@ _abc_cli_complete()
     prev_word="${COMP_WORDS[COMP_CWORD-1]}"
 
     # Ask abc-cli to generate a list of types it supports
+<<<<<<< 72c638602019e7f052a073ede204addc0ca7f6ea
 <<<<<<< 52408d44cca81b3bc047e5b2749be2642a2697c1
     type_list='account-available
     account-create

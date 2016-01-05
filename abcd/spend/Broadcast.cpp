@@ -191,12 +191,9 @@ broadcastTxStratum(Wallet &self, DataSlice rawTx)
 Status
 broadcastTx(Wallet &self, DataSlice rawTx)
 {
-    tABC_Error error;
-    AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> settings;
-    ABC_CHECK_OLD(ABC_AccountSettingsLoad(self.account, &settings.get(),
-                                          &error));
-
-    if (settings->szStratumServer)
+    AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
+    settings.get() = accountSettingsLoad(self.account);
+    if (settings->szStratumServer && settings->szStratumServer != "")
     {
         return broadcastTxStratum(self, rawTx);
     }

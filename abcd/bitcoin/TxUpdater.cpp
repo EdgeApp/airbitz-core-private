@@ -77,12 +77,9 @@ TxUpdater::disconnect()
 Status
 TxUpdater::connect()
 {
-    tABC_Error error;
-    AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> settings;
-    ABC_CHECK_OLD(ABC_AccountSettingsLoad(wallet_.account, &settings.get(),
-                                          &error));
-
-    if (settings->szStratumServer)
+    AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
+    settings.get() = accountSettingsLoad(wallet_.account);
+    if (settings->szStratumServer && settings->szStratumServer != "")
     {
         serverList_ = { settings->szStratumServer };
         connectTo(0).log();
@@ -92,7 +89,7 @@ TxUpdater::connect()
         wantConnection_ = true;
 
         // This happens once, and never changes:
-        if (serverList_.empty())
+        if (serverList_.empty() || serverList_.size() == 1)
             serverList_ = generalBitcoinServers();
 
         for (int i = 0; i < serverList_.size(); i++)
