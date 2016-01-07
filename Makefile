@@ -1,5 +1,6 @@
 # Build settings:
 WORK_DIR ?= build
+INSTALL_PATH ?= /usr/local
 
 # Compiler options:
 CFLAGS   += -D_GNU_SOURCE -DDEBUG -g -Wall -fPIC -std=c99
@@ -77,6 +78,25 @@ endif
 
 clean:
 	$(RM) -r $(WORK_DIR) codegen
+
+install: libabc.a
+	mkdir -p $(INSTALL_PATH)/lib
+	mkdir -p $(INSTALL_PATH)/bin
+	mkdir -p $(INSTALL_PATH)/include
+	mkdir -p $(INSTALL_PATH)/share/man/man1
+	mkdir -p $(INSTALL_PATH)/share/bash-completion/completions
+	cp $(WORK_DIR)/libabc.a $(INSTALL_PATH)/lib
+	cp $(WORK_DIR)/abc-cli $(INSTALL_PATH)/bin
+	cp src/ABC.h $(INSTALL_PATH)/include
+	cp cli/doc/abc-cli.1 $(INSTALL_PATH)/share/man/man1
+	cp cli/abc-cli-bash-completion.sh $(INSTALL_PATH)/share/bash-completion/completions
+
+uninstall:
+	rm -f $(INSTALL_PATH)/lib/libabc.a
+	rm -f $(INSTALL_PATH)/bin/abc-cli
+	rm -f $(INSTALL_PATH)/include/ABC.h
+	rm -f $(INSTALL_PATH)/share/man/man1/abc-cli.1
+	rm -f $(INSTALL_PATH)/share/bash-completion/completions/abc-cli-bash-completion.sh
 
 # Automatic dependency rules:
 $(WORK_DIR)/%.o: %.c | $(generated_headers)
