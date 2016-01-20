@@ -9,6 +9,7 @@
 #include "StratumConnection.hpp"
 #include "TxDatabase.hpp"
 #include "../util/Status.hpp"
+#include "../wallet/Wallet.hpp"
 #include "../../minilibs/libbitcoin-client/client.hpp"
 #include <functional>
 #include <unordered_map>
@@ -50,7 +51,7 @@ class TxUpdater:
 {
 public:
     ~TxUpdater();
-    TxUpdater(TxDatabase &db, void *ctx, TxCallbacks &callbacks);
+    TxUpdater(Wallet &wallet, void *ctx, TxCallbacks &callbacks);
 
     void disconnect();
     Status connect();
@@ -111,7 +112,7 @@ private:
     void sendTx(StatusCallback status, DataSlice tx);
     void query_address(const bc::payment_address &address, int server_index);
 
-    TxDatabase &db_;
+    Wallet &wallet_;
     void *ctx_;
     TxCallbacks &callbacks_;
 
@@ -126,7 +127,7 @@ private:
     long failed_server_idx_;
     std::chrono::steady_clock::time_point last_wakeup_;
 
-    bool wantConnection = false;
+    bool wantConnection_ = false;
     std::vector<Connection *> connections_;
     std::vector<std::string> serverList_;
     std::set<int> untriedLibbitcoin_;

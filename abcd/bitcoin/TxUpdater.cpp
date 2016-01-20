@@ -4,8 +4,11 @@
  */
 
 #include "TxUpdater.hpp"
+#include "../account/AccountSettings.hpp"
 #include "../General.hpp"
+#include "../util/AutoFree.hpp"
 #include "../util/Debug.hpp"
+#include "../util/Util.hpp"
 #include <list>
 
 namespace abcd {
@@ -46,8 +49,8 @@ TxUpdater::~TxUpdater()
     disconnect();
 }
 
-TxUpdater::TxUpdater(TxDatabase &db, void *ctx, TxCallbacks &callbacks):
-    db_(db),
+TxUpdater::TxUpdater(Wallet &wallet, void *ctx, TxCallbacks &callbacks):
+    wallet_(wallet),
     ctx_(ctx),
     callbacks_(callbacks),
     failed_(false),
@@ -58,7 +61,7 @@ TxUpdater::TxUpdater(TxDatabase &db, void *ctx, TxCallbacks &callbacks):
 void
 TxUpdater::disconnect()
 {
-    wantConnection = false;
+    wantConnection_ = false;
 
     const auto temp = connections_;
     connections_.clear();
@@ -74,100 +77,110 @@ TxUpdater::disconnect()
 Status
 TxUpdater::connect()
 {
-    wantConnection = true;
-
-    // This happens once, and never changes:
-    if (serverList_.empty())
-        serverList_ = generalBitcoinServers();
-
-    for (int i = 0; i < serverList_.size(); i++)
+    AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
+    settings.get() = accountSettingsLoad(wallet_.account);
+    if (settings->szStratumServer && settings->szStratumServer != "")
     {
-        ABC_DebugLevel(1, "serverList_[%d]=%s", i, serverList_[i].c_str());
+        serverList_ = { settings->szStratumServer };
+        connectTo(0).log();
     }
-
-    // If we have full connections then wipe them out and start over.
-    // This was likely due to a refresh
-    if (NUM_CONNECT_SERVERS <= connections_.size())
+    else
     {
-        disconnect();
-    }
+        wantConnection_ = true;
 
-    // If we are out of fresh libbitcoin servers, reload the list:
-    if (untriedLibbitcoin_.empty())
-    {
-        for (size_t i = 0; i < serverList_.size(); ++i)
+        // This happens once, and never changes:
+        if (serverList_.empty() || serverList_.size() == 1)
+            serverList_ = generalBitcoinServers();
+
+        for (int i = 0; i < serverList_.size(); i++)
         {
-            const auto &server = serverList_[i];
-            if (0 == server.compare(0, LIBBITCOIN_PREFIX_LENGTH, LIBBITCOIN_PREFIX))
-                untriedLibbitcoin_.insert(i);
-        }
-    }
-
-    // If we are out of fresh stratum servers, reload the list:
-    if (untriedStratum_.empty())
-    {
-        for (size_t i = 0; i < serverList_.size(); ++i)
-        {
-            const auto &server = serverList_[i];
-            if (0 == server.compare(0, STRATUM_PREFIX_LENGTH, STRATUM_PREFIX))
-                untriedStratum_.insert(i);
-        }
-    }
-
-    ABC_DebugLevel(2,"%d libbitcoin untried, %d stratrum untried",
-                   untriedLibbitcoin_.size(), untriedStratum_.size());
-
-    // Count the number of existing connections:
-    auto stratumCount = std::count_if(connections_.begin(), connections_.end(),
-    [](Connection *c) { return c->type == ConnectionType::stratum; });
-    auto libbitcoinCount = std::count_if(connections_.begin(), connections_.end(),
-    [](Connection *c) { return c->type == ConnectionType::libbitcoin; });
-
-    // Let's make some connections:
-    srand(time(nullptr));
-    int numConnections = 0;
-    while (connections_.size() < NUM_CONNECT_SERVERS &&
-            (untriedLibbitcoin_.size() || untriedStratum_.size()))
-    {
-        auto *untriedPrimary = &untriedStratum_;
-        auto *untriedSecondary = &untriedLibbitcoin_;
-        auto *primaryCount = &stratumCount;
-        auto *secondaryCount = &libbitcoinCount;
-        long minPrimary = MINIMUM_STRATUM_SERVERS;
-        long minSecondary = MINIMUM_LIBBITCOIN_SERVERS;
-
-        if (numConnections % 2 == 1)
-        {
-            untriedPrimary = &untriedLibbitcoin_;
-            untriedSecondary = &untriedStratum_;
-            primaryCount = &libbitcoinCount;
-            secondaryCount = &stratumCount;
-            minPrimary = MINIMUM_LIBBITCOIN_SERVERS;
-            minSecondary = MINIMUM_STRATUM_SERVERS;
+            ABC_DebugLevel(1, "serverList_[%d]=%s", i, serverList_[i].c_str());
         }
 
-        if (untriedPrimary->size() &&
-                ((minSecondary - *secondaryCount < NUM_CONNECT_SERVERS - connections_.size()) ||
-                 (rand() & 8)))
+        // If we have full connections then wipe them out and start over.
+        // This was likely due to a refresh
+        if (NUM_CONNECT_SERVERS <= connections_.size())
         {
-            auto i = untriedPrimary->begin();
-            std::advance(i, rand() % untriedPrimary->size());
-            if (connectTo(*i).log())
+            disconnect();
+        }
+
+        // If we are out of fresh libbitcoin servers, reload the list:
+        if (untriedLibbitcoin_.empty())
+        {
+            for (size_t i = 0; i < serverList_.size(); ++i)
             {
-                (*primaryCount)++;
-                ++numConnections;
+                const auto &server = serverList_[i];
+                if (0 == server.compare(0, LIBBITCOIN_PREFIX_LENGTH, LIBBITCOIN_PREFIX))
+                    untriedLibbitcoin_.insert(i);
             }
         }
-        else if (untriedSecondary->size() &&
-                 ((minPrimary - *primaryCount < NUM_CONNECT_SERVERS - connections_.size()) ||
-                  (rand() & 8)))
+
+        // If we are out of fresh stratum servers, reload the list:
+        if (untriedStratum_.empty())
         {
-            auto i = untriedSecondary->begin();
-            std::advance(i, rand() % untriedSecondary->size());
-            if (connectTo(*i).log())
+            for (size_t i = 0; i < serverList_.size(); ++i)
             {
-                (*secondaryCount)++;
-                ++numConnections;
+                const auto &server = serverList_[i];
+                if (0 == server.compare(0, STRATUM_PREFIX_LENGTH, STRATUM_PREFIX))
+                    untriedStratum_.insert(i);
+            }
+        }
+
+        ABC_DebugLevel(2,"%d libbitcoin untried, %d stratrum untried",
+                       untriedLibbitcoin_.size(), untriedStratum_.size());
+
+        // Count the number of existing connections:
+        auto stratumCount = std::count_if(connections_.begin(), connections_.end(),
+        [](Connection *c) { return c->type == ConnectionType::stratum; });
+        auto libbitcoinCount = std::count_if(connections_.begin(), connections_.end(),
+        [](Connection *c) { return c->type == ConnectionType::libbitcoin; });
+
+        // Let's make some connections:
+        srand(time(nullptr));
+        int numConnections = 0;
+        while (connections_.size() < NUM_CONNECT_SERVERS &&
+                (untriedLibbitcoin_.size() || untriedStratum_.size()))
+        {
+            auto *untriedPrimary = &untriedStratum_;
+            auto *untriedSecondary = &untriedLibbitcoin_;
+            auto *primaryCount = &stratumCount;
+            auto *secondaryCount = &libbitcoinCount;
+            long minPrimary = MINIMUM_STRATUM_SERVERS;
+            long minSecondary = MINIMUM_LIBBITCOIN_SERVERS;
+
+            if (numConnections % 2 == 1)
+            {
+                untriedPrimary = &untriedLibbitcoin_;
+                untriedSecondary = &untriedStratum_;
+                primaryCount = &libbitcoinCount;
+                secondaryCount = &stratumCount;
+                minPrimary = MINIMUM_LIBBITCOIN_SERVERS;
+                minSecondary = MINIMUM_STRATUM_SERVERS;
+            }
+
+            if (untriedPrimary->size() &&
+                    ((minSecondary - *secondaryCount < NUM_CONNECT_SERVERS - connections_.size()) ||
+                     (rand() & 8)))
+            {
+                auto i = untriedPrimary->begin();
+                std::advance(i, rand() % untriedPrimary->size());
+                if (connectTo(*i).log())
+                {
+                    (*primaryCount)++;
+                    ++numConnections;
+                }
+            }
+            else if (untriedSecondary->size() &&
+                     ((minPrimary - *primaryCount < NUM_CONNECT_SERVERS - connections_.size()) ||
+                      (rand() & 8)))
+            {
+                auto i = untriedSecondary->begin();
+                std::advance(i, rand() % untriedSecondary->size());
+                if (connectTo(*i).log())
+                {
+                    (*secondaryCount)++;
+                    ++numConnections;
+                }
             }
         }
     }
@@ -178,8 +191,8 @@ TxUpdater::connect()
         get_height();
 
         // Handle block-fork checks & unconfirmed transactions:
-        db_.foreach_unconfirmed(std::bind(&TxUpdater::get_index, this, _1,
-                                          ALL_SERVERS));
+        wallet_.txdb.foreach_unconfirmed(std::bind(&TxUpdater::get_index, this, _1,
+                                         ALL_SERVERS));
         queue_get_indices(ALL_SERVERS);
     }
 
@@ -297,7 +310,7 @@ bc::client::sleep_time TxUpdater::wakeup()
     }
 
     // Connect to more servers:
-    if (wantConnection && connections_.size() < NUM_CONNECT_SERVERS)
+    if (wantConnection_ && connections_.size() < NUM_CONNECT_SERVERS)
         connect().log();
 
     return next_wakeup;
@@ -370,9 +383,9 @@ TxUpdater::connectTo(long index)
 void TxUpdater::watch_tx(bc::hash_digest txid, bool want_inputs, int idx,
                          size_t index)
 {
-    db_.reset_timestamp(txid);
+    wallet_.txdb.reset_timestamp(txid);
     std::string str = bc::encode_hash(txid);
-    if (!db_.txidExists(txid))
+    if (!wallet_.txdb.txidExists(txid))
     {
 
         ABC_DebugLevel(1,
@@ -390,7 +403,7 @@ void TxUpdater::watch_tx(bc::hash_digest txid, bool want_inputs, int idx,
         // tx database
         if (index)
         {
-            db_.confirmed(txid, index);
+            wallet_.txdb.confirmed(txid, index);
         }
 
         ABC_DebugLevel(2,"*** watch_tx idx=%d TRANSACTION %s already in DB ****", idx,
@@ -399,7 +412,7 @@ void TxUpdater::watch_tx(bc::hash_digest txid, bool want_inputs, int idx,
         {
             ABC_DebugLevel(2,"*** watch_tx idx=%d getting inputs for tx=%s ****", idx,
                            str.c_str());
-            get_inputs(db_.txidLookup(txid), idx);
+            get_inputs(wallet_.txdb.txidLookup(txid), idx);
         }
     }
 }
@@ -452,7 +465,7 @@ void TxUpdater::queue_get_indices(int idx)
     if (total_queued_indices)
         return;
 
-    db_.foreach_forked(std::bind(&TxUpdater::get_index, this, _1, idx));
+    wallet_.txdb.foreach_forked(std::bind(&TxUpdater::get_index, this, _1, idx));
 }
 
 // - server queries --------------------
@@ -480,13 +493,14 @@ void TxUpdater::get_height()
 
         auto on_done = [this, idx, &bconn](size_t height)
         {
-            if (db_.last_height() < height)
+            if (wallet_.txdb.last_height() < height)
             {
-                db_.at_height(height);
+                wallet_.txdb.at_height(height);
                 callbacks_.on_height(height);
 
                 // Query all unconfirmed transactions:
-                db_.foreach_unconfirmed(std::bind(&TxUpdater::get_index, this, _1, idx));
+                wallet_.txdb.foreach_unconfirmed(std::bind(&TxUpdater::get_index, this, _1,
+                                                 idx));
                 queue_get_indices(idx);
                 ABC_DebugLevel(2, "get_height server idx=%d height=%d", idx, height);
             }
@@ -541,7 +555,7 @@ void TxUpdater::get_tx(bc::hash_digest txid, bool want_inputs, int server_index)
         {
             ABC_DebugLevel(2,"get_tx ENTER ON_DONE idx=%d txid=%s", idx, str.c_str());
             BITCOIN_ASSERT(txid == bc::hash_transaction(tx));
-            if (db_.insert(tx, TxState::unconfirmed))
+            if (wallet_.txdb.insert(tx, TxState::unconfirmed))
                 callbacks_.on_add(tx);
             if (want_inputs)
             {
@@ -600,7 +614,7 @@ void TxUpdater::get_tx_mem(bc::hash_digest txid, bool want_inputs,
             ABC_DebugLevel(2,"get_tx_mem ENTER ON_DONE idx=%d txid=%s FOUND IN MEMPOOL",
                            idx, str.c_str());
             BITCOIN_ASSERT(txid == bc::hash_transaction(tx));
-            if (db_.insert(tx, TxState::unconfirmed))
+            if (wallet_.txdb.insert(tx, TxState::unconfirmed))
                 callbacks_.on_add(tx);
             if (want_inputs)
             {
@@ -649,7 +663,7 @@ void TxUpdater::get_index(bc::hash_digest txid, int server_index)
         {
             // A failure means that the transaction is unconfirmed:
             (void)error;
-            db_.unconfirmed(txid);
+            wallet_.txdb.unconfirmed(txid);
 
             bconn.queued_get_indices_--;
             queue_get_indices(idx);
@@ -660,7 +674,7 @@ void TxUpdater::get_index(bc::hash_digest txid, int server_index)
             // The transaction is confirmed:
             (void)index;
 
-            db_.confirmed(txid, block_height);
+            wallet_.txdb.confirmed(txid, block_height);
 
             bconn.queued_get_indices_--;
             queue_get_indices(idx);

@@ -457,6 +457,8 @@ typedef struct sABC_AccountSettings
     int                         pinLoginCount;
     /** should fingerprint based logins be disabled (ie. TouchID */
     bool                        bDisableFingerprintLogin;
+    /** Stratum Server (optional) */
+    char                        *szStratumServer;
 } tABC_AccountSettings;
 
 /**

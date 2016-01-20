@@ -77,7 +77,7 @@ generalAirbitzFeeSpendable(const AirbitzFeeInfo &info,
                            uint64_t usable, bool transfer);
 
 /**
- * Obtains a list of libbitcoin servers for the current network
+ * Obtains a list of stratum and libbitcoin servers for the current network
  * (either testnet or mainnet).
  * Returns a fallback server if something goes wrong.
  */

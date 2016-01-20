@@ -40,7 +40,6 @@ abc_sources = \
 
 cli_sources = $(wildcard cli/*.cpp cli/*/*.cpp)
 test_sources = $(wildcard test/*.cpp)
-watcher_sources = $(wildcard util/*.cpp)
 
 generated_headers = \
 	codegen/paymentrequest.pb.h
@@ -49,7 +48,6 @@ generated_headers = \
 abc_objects = $(addprefix $(WORK_DIR)/, $(addsuffix .o, $(basename $(abc_sources))))
 cli_objects = $(addprefix $(WORK_DIR)/, $(addsuffix .o, $(basename $(cli_sources))))
 test_objects = $(addprefix $(WORK_DIR)/, $(addsuffix .o, $(basename $(test_sources))))
-watcher_objects = $(addprefix $(WORK_DIR)/, $(addsuffix .o, $(basename $(watcher_sources))))
 
 # Adjustable verbosity:
 V ?= 0
@@ -58,7 +56,7 @@ ifeq ($V,0)
 endif
 
 # Targets:
-all: $(WORK_DIR)/abc-cli check $(WORK_DIR)/abc-watcher format-check
+all: $(WORK_DIR)/abc-cli check format-check
 libabc.a:  $(WORK_DIR)/libabc.a
 libabc.so: $(WORK_DIR)/libabc.so
 
@@ -72,9 +70,6 @@ $(WORK_DIR)/abc-cli: $(cli_objects) $(WORK_DIR)/libabc.a
 	$(RUN) $(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 $(WORK_DIR)/abc-test: $(test_objects) $(WORK_DIR)/libabc.a
-	$(RUN) $(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
-
-$(WORK_DIR)/abc-watcher: $(watcher_objects) $(WORK_DIR)/libabc.a
 	$(RUN) $(CXX) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 check: $(WORK_DIR)/abc-test

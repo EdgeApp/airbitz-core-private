@@ -33,9 +33,9 @@ static bool is_valid(const bc::payment_address &address)
     return address.version() != bc::payment_address::invalid_version;
 }
 
-Watcher::Watcher(TxDatabase &db):
+Watcher::Watcher(Wallet &wallet):
     socket_(ctx_, ZMQ_PAIR),
-    txu_(db, ctx_, *this)
+    txu_(wallet, ctx_, *this)
 {
     std::stringstream name;
     name << "inproc://watcher-" << watcher_id++;

@@ -173,6 +173,8 @@ COMMAND(InitLevel::login, GetSettings, "get-settings",
     printf("PIN Spend Enabled: %d\n", pSettings->bSpendRequirePin);
     printf("PIN Spend Limit: %ld\n", (long) pSettings->spendRequirePinSatoshis);
     printf("Exchange rate source: %s\n", pSettings->szExchangeRateSource );
+    printf("Stratum Server: %s\n",
+           pSettings->szStratumServer ? pSettings->szStratumServer : "(none)");
 
     return Status();
 }
@@ -284,5 +286,45 @@ COMMAND(InitLevel::none, Version, "version",
     AutoString version;
     ABC_CHECK_OLD(ABC_Version(&version.get(), &error));
     std::cout << "ABC version: " << version.get() << std::endl;
+    return Status();
+}
+
+
+COMMAND(InitLevel::account, SetStratumServer, "set-stratum-server",
+        " <url>")
+{
+    if (argc != 1)
+        return ABC_ERROR(ABC_CC_Error, helpString(*this));
+    const auto url = argv[0];
+
+    AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> pSettings;
+    ABC_CHECK_OLD(ABC_LoadAccountSettings(session.username.c_str(),
+                                          session.password.c_str(),
+                                          &pSettings.get(), &error));
+    free(pSettings->szStratumServer);
+    pSettings->szStratumServer = stringCopy(url);
+    ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username.c_str(),
+                                            session.password.c_str(),
+                                            pSettings, &error));
+
+    return Status();
+}
+
+COMMAND(InitLevel::account, ResetStratumServer, "reset-stratum-server",
+        "")
+{
+    if (argc != 0)
+        return ABC_ERROR(ABC_CC_Error, helpString(*this));
+
+    AutoFree<tABC_AccountSettings, ABC_FreeAccountSettings> pSettings;
+    ABC_CHECK_OLD(ABC_LoadAccountSettings(session.username.c_str(),
+                                          session.password.c_str(),
+                                          &pSettings.get(), &error));
+    free(pSettings->szStratumServer);
+    pSettings->szStratumServer = NULL;
+    ABC_CHECK_OLD(ABC_UpdateAccountSettings(session.username.c_str(),
+                                            session.password.c_str(),
+                                            pSettings, &error));
+
     return Status();
 }
