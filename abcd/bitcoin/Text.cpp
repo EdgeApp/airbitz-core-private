@@ -9,7 +9,6 @@
 #include "Testnet.hpp"
 #include "../Context.hpp"
 #include "../util/Util.hpp"
-#include <bitcoin/bitcoin.hpp>
 
 namespace abcd {
 
@@ -54,7 +53,7 @@ minikeyCheck(const std::string &minikey)
  * hbits://S23c2fe8dbd330539a5fbab16a7602
  * Address: 1Lbd7DZWdz7fMR1sHHnWfnfQeAFoT52ZAi
  */
-static Status
+Status
 hbitsDecode(bc::ec_secret &result, const std::string &hbits)
 {
     // If the text starts with "hbitz://", get rid of that:

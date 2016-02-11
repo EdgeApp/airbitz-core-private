@@ -14,6 +14,7 @@
 
 #include "../util/Data.hpp"
 #include "../util/Status.hpp"
+#include <bitcoin/bitcoin.hpp>
 
 namespace abcd {
 
@@ -53,6 +54,8 @@ void ABC_BridgeFreeURIInfo(tABC_BitcoinURIInfo *pInfo);
 tABC_CC ABC_BridgeEncodeBitcoinURI(char **pszURI,
                                    tABC_BitcoinURIInfo *pInfo,
                                    tABC_Error *pError);
+
+Status hbitsDecode(bc::ec_secret &result, const std::string &hbits);
 
 } // namespace abcd
 
