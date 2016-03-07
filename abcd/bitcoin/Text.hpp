@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, AirBitz, Inc.
+ * Copyright (c) 2014, Airbitz, Inc.
  * All rights reserved.
  *
  * See the LICENSE file for more information.
@@ -53,6 +53,12 @@ void ABC_BridgeFreeURIInfo(tABC_BitcoinURIInfo *pInfo);
 tABC_CC ABC_BridgeEncodeBitcoinURI(char **pszURI,
                                    tABC_BitcoinURIInfo *pInfo,
                                    tABC_Error *pError);
+
+/**
+ * Generate a random hbits private key.
+ */
+Status
+hbitsCreate(std::string &result, std::string &addressOut);
 
 } // namespace abcd
 

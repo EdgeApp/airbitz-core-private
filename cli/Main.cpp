@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, AirBitz, Inc.
+ * Copyright (c) 2014, Airbitz, Inc.
  * All rights reserved.
  *
  * See the LICENSE file for more information.
@@ -14,13 +14,15 @@
 
 using namespace abcd;
 
+#define DEFAULT_HIDDENBITSKEY ""
+
 #define CA_CERT "./cli/ca-certificates.crt"
 
 struct ConfigJson:
     public JsonObject
 {
     ABC_JSON_STRING(apiKey, "apiKey", nullptr)
-    ABC_JSON_STRING(hiddenBitzKey, "hiddenBitzKey", nullptr)
+    ABC_JSON_STRING(hiddenBitsKey, "hiddenBitsKey", DEFAULT_HIDDENBITSKEY)
     ABC_JSON_STRING(workingDir, "workingDir", nullptr)
     ABC_JSON_STRING(username, "username", nullptr)
     ABC_JSON_STRING(password, "password", nullptr)
@@ -51,7 +53,6 @@ static Status run(int argc, char *argv[])
     ConfigJson json;
     ABC_CHECK(json.load(configPath()));
     ABC_CHECK(json.apiKeyOk());
-    ABC_CHECK(json.hiddenBitzKeyOk());
 
     // Parse out the command-line options:
     std::string workingDir;
@@ -138,14 +139,15 @@ static Status run(int argc, char *argv[])
             if (json.workingDirOk())
                 workingDir = json.workingDir();
             else
-                return ABC_ERROR(ABC_CC_Error, "No working directory given");
+                return ABC_ERROR(ABC_CC_Error, "No working directory given, " +
+                                 helpString(*command));
         }
 
         unsigned char seed[] = {1, 2, 3};
         ABC_CHECK_OLD(ABC_Initialize(workingDir.c_str(),
                                      CA_CERT,
                                      json.apiKey(),
-                                     json.hiddenBitzKey(),
+                                     json.hiddenBitsKey(),
                                      seed,
                                      sizeof(seed),
                                      &error));
@@ -157,7 +159,8 @@ static Status run(int argc, char *argv[])
             if (json.usernameOk())
                 session.username = json.username();
             else
-                return ABC_ERROR(ABC_CC_Error, "No username given");
+                return ABC_ERROR(ABC_CC_Error, "No username given, " +
+                                 helpString(*command));
         }
 
         ABC_CHECK(cacheLobby(session.lobby, session.username.c_str()));
@@ -169,7 +172,8 @@ static Status run(int argc, char *argv[])
             if (json.passwordOk())
                 session.password = json.password();
             else
-                return ABC_ERROR(ABC_CC_Error, "No password given");
+                return ABC_ERROR(ABC_CC_Error, "No password given, " +
+                                 helpString(*command));
         }
 
         auto s = cacheLoginPassword(session.login,
@@ -197,7 +201,8 @@ static Status run(int argc, char *argv[])
             if (json.walletOk())
                 session.uuid = json.wallet();
             else
-                return ABC_ERROR(ABC_CC_Error, "No wallet name given");
+                return ABC_ERROR(ABC_CC_Error, "No wallet name given, " +
+                                 helpString(*command));
         }
 
         ABC_CHECK(cacheWallet(session.wallet,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, AirBitz, Inc.
+ * Copyright (c) 2015, Airbitz, Inc.
  * All rights reserved.
  *
  * See the LICENSE file for more information.
@@ -10,6 +10,7 @@
 
 #include "../util/Data.hpp"
 #include "../util/Status.hpp"
+#include "../bitcoin/AddressCache.hpp"
 #include "AddressDb.hpp"
 #include "TxMetaDb.hpp"
 #include <atomic>
@@ -99,6 +100,7 @@ private:
     loadSync();
 
 public:
+    AddressCache addressCache;
     AddressDb addresses;
     TxMetaDb txs;
     TxDatabase &txdb;

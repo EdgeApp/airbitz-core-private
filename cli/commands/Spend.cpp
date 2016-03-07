@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, AirBitz, Inc.
+ * Copyright (c) 2015, Airbitz, Inc.
  * All rights reserved.
  *
  * See the LICENSE file for more information.
@@ -11,11 +11,6 @@
 #include <iostream>
 
 using namespace abcd;
-
-static void
-syncCallback(const tABC_AsyncBitCoinInfo *pInfo)
-{
-}
 
 COMMAND(InitLevel::wallet, SpendUri, "spend-uri",
         " <uri>")
@@ -38,10 +33,11 @@ COMMAND(InitLevel::wallet, SpendUri, "spend-uri",
                                    pSpend, &szTxId.get(), &error));
     std::cout << "Transaction id: " << szTxId.get() << std::endl;
 
+    bool dirty;
     ABC_CHECK_OLD(ABC_DataSyncWallet(session.username.c_str(),
                                      session.password.c_str(),
                                      session.uuid.c_str(),
-                                     syncCallback, nullptr, &error));
+                                     &dirty, &error));
 
     return Status();
 }
@@ -74,13 +70,14 @@ COMMAND(InitLevel::wallet, SpendTransfer, "spend-transfer",
                                    pSpend, &szTxId.get(), &error));
     std::cout << "Transaction id: " << szTxId.get() << std::endl;
 
+    bool dirty;
     ABC_CHECK_OLD(ABC_DataSyncWallet(session.username.c_str(),
                                      session.password.c_str(),
                                      session.uuid.c_str(),
-                                     syncCallback, nullptr, &error));
+                                     &dirty, &error));
     ABC_CHECK_OLD(ABC_DataSyncWallet(session.username.c_str(),
                                      session.password.c_str(),
-                                     dest, syncCallback, nullptr, &error));
+                                     dest, &dirty, &error));
 
     return Status();
 }
@@ -108,10 +105,11 @@ COMMAND(InitLevel::wallet, SpendInternal, "spend-internal",
                                    pSpend, &szTxId.get(), &error));
     std::cout << "Transaction id: " << szTxId.get() << std::endl;
 
+    bool dirty;
     ABC_CHECK_OLD(ABC_DataSyncWallet(session.username.c_str(),
                                      session.password.c_str(),
                                      session.uuid.c_str(),
-                                     syncCallback, nullptr, &error));
+                                     &dirty, &error));
 
     return Status();
 }

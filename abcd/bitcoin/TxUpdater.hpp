@@ -1,6 +1,8 @@
 /*
- *  Copyright (c) 2014, AirBitz, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014, Airbitz, Inc.
+ * All rights reserved.
+ *
+ * See the LICENSE file for more information.
  */
 
 #ifndef ABCD_BITCOIN_TX_UPDATER_HPP
@@ -15,6 +17,7 @@
 
 namespace abcd {
 
+class AddressCache;
 typedef std::function<void(Status)> StatusCallback;
 
 /**
@@ -50,15 +53,12 @@ class TxUpdater:
 {
 public:
     ~TxUpdater();
-    TxUpdater(TxDatabase &db, void *ctx, TxCallbacks &callbacks);
+    TxUpdater(TxDatabase &db, AddressCache &addressCache, void *ctx,
+              TxCallbacks &callbacks);
 
     void disconnect();
     Status connect();
-    void watch(const bc::payment_address &address,
-               bc::client::sleep_time poll);
     void send(StatusCallback status, DataSlice tx);
-
-    AddressSet watching();
 
     // Sleeper interface:
     virtual bc::client::sleep_time wakeup();
@@ -101,7 +101,6 @@ private:
     void watch_tx(bc::hash_digest txid, bool want_inputs, int idx, size_t index);
     void get_inputs(const bc::transaction_type &tx, int idx);
     void query_done(int idx, Connection &bconn);
-    void queue_get_indices(int idx);
 
     // Server queries:
     void get_height();
@@ -112,15 +111,9 @@ private:
     void query_address(const bc::payment_address &address, int server_index);
 
     TxDatabase &db_;
+    AddressCache &addressCache_;
     void *ctx_;
     TxCallbacks &callbacks_;
-
-    struct AddressRow
-    {
-        libbitcoin::client::sleep_time poll_time;
-        std::chrono::steady_clock::time_point last_check;
-    };
-    std::unordered_map<bc::payment_address, AddressRow> rows_;
 
     bool failed_;
     long failed_server_idx_;

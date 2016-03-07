@@ -1,6 +1,6 @@
 /*
- *  Copyright (c) 2014, AirBitz, Inc.
- *  All rights reserved.
+ * Copyright (c) 2014, Airbitz, Inc.
+ * All rights reserved.
  *
  * See the LICENSE file for more information.
  */
@@ -14,9 +14,6 @@ namespace abcd {
 
 struct TxMetadata;
 class Wallet;
-
-tABC_CC ABC_TxWatchAddresses(Wallet &self,
-                             tABC_Error *pError);
 
 tABC_CC ABC_TxSetAddressRecycle(Wallet &self,
                                 const char *szAddress,

@@ -1,6 +1,6 @@
 /*
- *  Copyright (c) 2015, AirBitz, Inc.
- *  All rights reserved.
+ * Copyright (c) 2015, Airbitz, Inc.
+ * All rights reserved.
  *
  * See the LICENSE file for more information.
  */
@@ -37,7 +37,7 @@ struct Address
 class AddressDb
 {
 public:
-    AddressDb(const Wallet &wallet);
+    AddressDb(Wallet &wallet);
 
     /**
      * Loads the addresses off disk.
@@ -83,7 +83,7 @@ public:
 
 private:
     mutable std::mutex mutex_;
-    const Wallet &wallet_;
+    Wallet &wallet_;
     const std::string dir_;
 
     std::map<std::string, Address> addresses_;

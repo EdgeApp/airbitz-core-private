@@ -1,32 +1,8 @@
 /*
- *  Copyright (c) 2014, Airbitz
- *  All rights reserved.
+ * Copyright (c) 2014, Airbitz, Inc.
+ * All rights reserved.
  *
- *  Redistribution and use in source and binary forms are permitted provided that
- *  the following conditions are met:
- *
- *  1. Redistributions of source code must retain the above copyright notice, this
- *  list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *  this list of conditions and the following disclaimer in the documentation
- *  and/or other materials provided with the distribution.
- *  3. Redistribution or use of modified source code requires the express written
- *  permission of Airbitz Inc.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- *  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  The views and conclusions contained in the software and documentation are those
- *  of the authors and should not be interpreted as representing official policies,
- *  either expressed or implied, of the Airbitz Project.
+ * See the LICENSE file for more information.
  */
 
 #include "Tx.hpp"
@@ -176,34 +152,34 @@ txReceiveTransaction(Wallet &self,
         // add the transaction to the address
         ABC_CHECK(txSaveNewTx(self, tx, addresses, true));
 
-        if (fAsyncCallback)
-        {
-            tABC_AsyncBitCoinInfo info;
-            info.pData = pData;
-            info.eventType = ABC_AsyncEventType_IncomingBitCoin;
-            info.szTxID = ntxid.c_str();
-            info.szWalletUUID = self.id().c_str();
-            info.szDescription = "Received funds";
-            fAsyncCallback(&info);
-        }
+        // Update the GUI:
+        ABC_DebugLog("IncomingBitCoin callback: wallet %s, txid: %s, ntxid: %s",
+                     self.id().c_str(), txid.c_str(), ntxid.c_str());
+        tABC_AsyncBitCoinInfo info;
+        info.pData = pData;
+        info.eventType = ABC_AsyncEventType_IncomingBitCoin;
+        Status().toError(info.status, ABC_HERE());
+        info.szWalletUUID = self.id().c_str();
+        info.szTxID = ntxid.c_str();
+        info.sweepSatoshi = 0;
+        fAsyncCallback(&info);
     }
     else
     {
-        ABC_DebugLog("We already have %s", ntxid.c_str());
-
         // Mark the wallet cache as dirty in case the Tx wasn't included in the current balance
         self.balanceDirty();
 
-        if (fAsyncCallback)
-        {
-            tABC_AsyncBitCoinInfo info;
-            info.pData = pData;
-            info.eventType = ABC_AsyncEventType_DataSyncUpdate;
-            info.szTxID = ntxid.c_str();
-            info.szWalletUUID = self.id().c_str();
-            info.szDescription = "Updated balance";
-            fAsyncCallback(&info);
-        }
+        // Update the GUI:
+        ABC_DebugLog("BalanceUpdate callback: wallet %s, txid: %s, ntxid: %s",
+                     self.id().c_str(), txid.c_str(), ntxid.c_str());
+        tABC_AsyncBitCoinInfo info;
+        info.pData = pData;
+        info.eventType = ABC_AsyncEventType_BalanceUpdate;
+        Status().toError(info.status, ABC_HERE());
+        info.szWalletUUID = self.id().c_str();
+        info.szTxID = ntxid.c_str();
+        info.sweepSatoshi = 0;
+        fAsyncCallback(&info);
     }
 
     return Status();

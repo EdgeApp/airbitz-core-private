@@ -1,32 +1,8 @@
 /*
- *  Copyright (c) 2014, Airbitz
- *  All rights reserved.
+ * Copyright (c) 2014, Airbitz, Inc.
+ * All rights reserved.
  *
- *  Redistribution and use in source and binary forms are permitted provided that
- *  the following conditions are met:
- *
- *  1. Redistributions of source code must retain the above copyright notice, this
- *  list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright notice,
- *  this list of conditions and the following disclaimer in the documentation
- *  and/or other materials provided with the distribution.
- *  3. Redistribution or use of modified source code requires the express written
- *  permission of Airbitz Inc.
- *
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- *  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- *  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *  The views and conclusions contained in the software and documentation are those
- *  of the authors and should not be interpreted as representing official policies,
- *  either expressed or implied, of the Airbitz Project.
+ * See the LICENSE file for more information.
  */
 
 #include "ABC.h"
@@ -107,7 +83,7 @@ using namespace abcd;
 tABC_CC ABC_Initialize(const char               *szRootDir,
                        const char               *szCaCertPath,
                        const char               *szApiKey,
-                       const char               *szHiddenBitzKey,
+                       const char               *szHiddenBitsKey,
                        const unsigned char      *pSeedData,
                        unsigned int             seedLength,
                        tABC_Error               *pError)
@@ -120,13 +96,13 @@ tABC_CC ABC_Initialize(const char               *szRootDir,
                      "The core library has already been initalized");
     ABC_CHECK_NULL(szRootDir);
     ABC_CHECK_NULL(szApiKey);
-    ABC_CHECK_NULL(szHiddenBitzKey);
+    ABC_CHECK_NULL(szHiddenBitsKey);
     ABC_CHECK_NULL(pSeedData);
 
     {
         // Initialize the global context object:
         gContext.reset(new Context(szRootDir, szCaCertPath, szApiKey,
-                                   szHiddenBitzKey));
+                                   szHiddenBitsKey));
 
         // initialize logging
         ABC_CHECK_NEW(debugInitialize());
@@ -165,6 +141,24 @@ void ABC_Terminate()
 void ABC_Log(const char *szMessage)
 {
     ABC_DebugLog("%s", szMessage);
+}
+
+tABC_CC ABC_FixUsername(char **pszResult,
+                        const char *szUserName,
+                        tABC_Error *pError)
+{
+    ABC_PROLOG();
+    ABC_CHECK_NULL(pszResult);
+    ABC_CHECK_NULL(szUserName);
+
+    {
+        std::string username;
+        ABC_CHECK_NEW(Lobby::fixUsername(username, szUserName));
+        *pszResult = stringCopy(username);
+    }
+
+exit:
+    return cc;
 }
 
 /**
@@ -744,83 +738,6 @@ exit:
 }
 
 /**
- * Get a PIN number (Deprecated!).
- *
- * This function retrieves the PIN for a given account.
- * The string is allocated and must be free'd by the caller.
- * It is deprecated in favor of just reading the PIN out of the account settings.
- *
- * @param szUserName             UserName for the account
- * @param szPassword             Password for the account
- * @param pszPin                 Pointer where to store allocated PIN string.
- *                               This will be set to NULL if there is no PIN.
- * @param pError                 A pointer to the location to store the error if there is one
- */
-tABC_CC ABC_GetPIN(const char *szUserName,
-                   const char *szPassword,
-                   char **pszPin,
-                   tABC_Error *pError)
-{
-    ABC_PROLOG();
-    ABC_CHECK_NULL(pszPin);
-
-    {
-        ABC_GET_ACCOUNT();
-
-        AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
-        settings.get() = accountSettingsLoad(*account);
-
-        *pszPin = nullptr;
-        if (settings->szPIN)
-            *pszPin = stringCopy(settings->szPIN);
-    }
-
-exit:
-    return cc;
-}
-
-/**
- * Set PIN number for an account (Deprecated!).
- *
- * This function sets the PIN for a given account.
- * It is deprecated in favor of just setting the PIN in the account settings.
- *
- * @param szUserName            UserName for the account
- * @param szPassword            Password for the account
- * @param szPin                 PIN string
- * @param pError                A pointer to the location to store the error if there is one
- */
-tABC_CC ABC_SetPIN(const char *szUserName,
-                   const char *szPassword,
-                   const char *szPin,
-                   tABC_Error *pError)
-{
-    ABC_PROLOG();
-    ABC_CHECK_NULL(szPin);
-
-    {
-        ABC_GET_ACCOUNT();
-
-        ABC_CHECK_ASSERT(ABC_MIN_PIN_LENGTH <= strlen(szPin), ABC_CC_Error,
-                         "Pin is too short");
-        char *endstr = nullptr;
-        strtol(szPin, &endstr, 10);
-        ABC_CHECK_ASSERT('\0' == *endstr, ABC_CC_NonNumericPin,
-                         "The pin must be numeric.");
-
-        AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
-        settings.get() = accountSettingsLoad(*account);
-
-        ABC_FREE_STR(settings->szPIN);
-        settings->szPIN = stringCopy(szPin);
-        ABC_CHECK_NEW(accountSettingsSave(*account, settings));
-    }
-
-exit:
-    return cc;
-}
-
-/**
  * Get the categories for an account.
  *
  * This function gets the categories for an account.
@@ -981,41 +898,16 @@ exit:
     return cc;
 }
 
-/**
- * Checks the validity of the given account answers.
- *
- * This function sets the attributes on a given wallet to those given.
- * The attributes would have already been set when the wallet was created so this would allow them
- * to be changed.
- *
- * @param szUserName            UserName for the account associated with this wallet
- * @param szRecoveryAnswers     Recovery answers - newline seperated
- * @param pbValid               Pointer to boolean into which to store result
- * @param pError                A pointer to the location to store the error if there is one
- */
-tABC_CC ABC_CheckRecoveryAnswers(const char *szUserName,
-                                 const char *szRecoveryAnswers,
-                                 bool *pbValid,
-                                 tABC_Error *pError)
+tABC_CC ABC_RecoveryLogin(const char *szUserName,
+                          const char *szRecoveryAnswers,
+                          tABC_Error *pError)
 {
     ABC_PROLOG();
     ABC_CHECK_NULL(szRecoveryAnswers);
 
     {
         std::shared_ptr<Login> login;
-        Status s = cacheLoginRecovery(login, szUserName, szRecoveryAnswers);
-        if (s)
-        {
-            *pbValid = true;
-        }
-        else if (ABC_CC_DecryptFailure == s.value())
-        {
-            *pbValid = false;
-        }
-        else
-        {
-            ABC_CHECK_NEW(s);
-        }
+        ABC_CHECK_NEW(cacheLoginRecovery(login, szUserName, szRecoveryAnswers));
     }
 
 exit:
@@ -1041,23 +933,6 @@ exit:
 }
 
 /**
- * Deletes the PIN login package from the disk.
- */
-tABC_CC ABC_PinLoginDelete(const char *szUserName,
-                           tABC_Error *pError)
-{
-    ABC_PROLOG();
-
-    {
-        ABC_GET_LOBBY();
-        ABC_CHECK_NEW(loginPinDelete(*lobby));
-    }
-
-exit:
-    return cc;
-}
-
-/**
  * Performs a PIN-based login for the given user.
  */
 tABC_CC ABC_PinLogin(const char *szUserName,
@@ -1076,11 +951,9 @@ exit:
     return cc;
 }
 
-/**
- * Sets up the data for a pin-based login, both on disk and on the server.
- */
 tABC_CC ABC_PinSetup(const char *szUserName,
                      const char *szPassword,
+                     const char *szPin,
                      tABC_Error *pError)
 {
     ABC_PROLOG();
@@ -1089,13 +962,45 @@ tABC_CC ABC_PinSetup(const char *szUserName,
         ABC_GET_LOGIN();
         ABC_GET_ACCOUNT();
 
+        // Validate the PIN:
+        ABC_CHECK_ASSERT(ABC_MIN_PIN_LENGTH <= strlen(szPin), ABC_CC_Error,
+                         "Pin is too short");
+        char *endstr = nullptr;
+        strtol(szPin, &endstr, 10);
+        ABC_CHECK_ASSERT('\0' == *endstr, ABC_CC_NonNumericPin,
+                         "The pin must be numeric.");
+
+        // Update the settings:
         AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
         settings.get() = accountSettingsLoad(*account);
-        ABC_CHECK_NULL(settings->szPIN);
+        ABC_FREE_STR(settings->szPIN);
+        settings->szPIN = stringCopy(szPin);
+        ABC_CHECK_NEW(accountSettingsSave(*account, settings, true));
+    }
 
-        time_t expires = time(nullptr);
-        expires += 60 * settings->minutesAutoLogout;
-        ABC_CHECK_NEW(loginPinSetup(*login, settings->szPIN, expires));
+exit:
+    return cc;
+}
+
+tABC_CC ABC_PinCheck(const char *szUserName,
+                     const char *szPassword,
+                     const char *szPin,
+                     bool *pbResult,
+                     tABC_Error *pError)
+{
+    ABC_PROLOG();
+    ABC_CHECK_NULL(szPin);
+    ABC_CHECK_NULL(pbResult);
+
+    {
+        ABC_GET_ACCOUNT();
+
+        AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
+        settings.get() = accountSettingsLoad(*account);
+
+        *pbResult = false;
+        if (settings->szPIN && !strcmp(settings->szPIN, szPin))
+            *pbResult = true;
     }
 
 exit:
@@ -1308,45 +1213,13 @@ tABC_CC ABC_ChangePassword(const char *szUserName,
                      "No new password provided");
 
     {
-        ABC_GET_LOGIN();
-        ABC_CHECK_NEW(loginPasswordSet(*login, szNewPassword));
-    }
+        ABC_GET_ACCOUNT();
+        ABC_CHECK_NEW(loginPasswordSet(account->login, szNewPassword));
 
-exit:
-    return cc;
-}
-
-/**
- * Change account password using recovery answers.
- *
- * This function kicks off a thread to change the password for an account using the
- * recovery answers as account validation.
- * The callback will be called when it has finished.
- *
- * @param szUserName                UserName for the account
- * @param szRecoveryAnswers         Recovery answers (each answer seperated by a newline)
- * @param szNewPassword             New Password for the account
- * @param fRequestCallback          The function that will be called when the password change has finished.
- * @param pData                     Pointer to data to be returned back in callback
- * @param pError                    A pointer to the location to store the error if there is one
- */
-tABC_CC ABC_ChangePasswordWithRecoveryAnswers(const char *szUserName,
-        const char *szRecoveryAnswers,
-        const char *szNewPassword,
-        tABC_Error *pError)
-{
-    ABC_PROLOG();
-    ABC_CHECK_NULL(szRecoveryAnswers);
-    ABC_CHECK_ASSERT(strlen(szRecoveryAnswers) > 0, ABC_CC_Error,
-                     "No recovery answers provided");
-    ABC_CHECK_NULL(szNewPassword);
-    ABC_CHECK_ASSERT(strlen(szNewPassword) > 0, ABC_CC_Error,
-                     "No new password provided");
-
-    {
-        std::shared_ptr<Login> login;
-        ABC_CHECK_NEW(cacheLoginRecovery(login, szUserName, szRecoveryAnswers));
-        ABC_CHECK_NEW(loginPasswordSet(*login, szNewPassword));
+        // Force an update of the PIN, since the SNRP has changed:
+        AutoFree<tABC_AccountSettings, accountSettingsFree> settings;
+        settings.get() = accountSettingsLoad(*account);
+        ABC_CHECK_NEW(accountSettingsSave(*account, settings, true));
     }
 
 exit:
@@ -1472,7 +1345,6 @@ exit:
 tABC_CC ABC_CreateReceiveRequest(const char *szUserName,
                                  const char *szPassword,
                                  const char *szWalletUUID,
-                                 tABC_TxDetails *pDetails,
                                  char **pszRequestID,
                                  tABC_Error *pError)
 {
@@ -1932,8 +1804,6 @@ tABC_CC ABC_SweepKey(const char *szUserName,
                      const char *szWalletUUID,
                      const char *szKey,
                      char **pszAddress,
-                     tABC_Sweep_Done_Callback fCallback,
-                     void *pData,
                      tABC_Error *pError)
 {
     ABC_PROLOG();
@@ -1946,8 +1816,7 @@ tABC_CC ABC_SweepKey(const char *szUserName,
         ABC_CHECK_RET(ABC_BridgeDecodeWIF(szKey, &key, &bCompressed, pszAddress,
                                           pError));
 
-        ABC_CHECK_RET(ABC_BridgeSweepKey(*wallet, key, bCompressed, fCallback, pData,
-                                         pError));
+        ABC_CHECK_NEW(bridgeSweepKey(*wallet, key, bCompressed));
     }
 
 exit:
@@ -2008,8 +1877,8 @@ tABC_CC ABC_GetTransactions(const char *szUserName,
         ABC_GET_WALLET();
         ABC_CHECK_RET(ABC_TxGetTransactions(*wallet, startTime, endTime, paTransactions,
                                             pCount, pError));
-        ABC_CHECK_RET(ABC_BridgeFilterTransactions(*wallet, *paTransactions, pCount,
-                      pError));
+        ABC_CHECK_NEW(bridgeFilterTransactions(*wallet,
+                                               *paTransactions, pCount));
     }
 
 exit:
@@ -2159,32 +2028,6 @@ tABC_CC ABC_GetTransactionDetails(const char *szUserName,
         ABC_CHECK_RET(ABC_TxGetTransactionDetails(*wallet, szID, metadata, pError));
         *ppDetails = metadata.toDetails();
     }
-
-exit:
-    return cc;
-}
-
-/**
- * Gets the bit coin public address for a specified request.
- * DEPRECATED, since the address ID *is* the address.
- *
- * @param szUserName        UserName for the account associated with the requests
- * @param szPassword        Password for the account associated with the requests
- * @param szWalletUUID      UUID of the wallet associated with the requests
- * @param szRequestID       ID of request
- * @param pszAddress        Location to store allocated address string (caller must free)
- * @param pError            A pointer to the location to store the error if there is one
- */
-tABC_CC ABC_GetRequestAddress(const char *szUserName,
-                              const char *szPassword,
-                              const char *szWalletUUID,
-                              const char *szRequestID,
-                              char **pszAddress,
-                              tABC_Error *pError)
-{
-    ABC_PROLOG();
-
-    *pszAddress = stringCopy(szRequestID);
 
 exit:
     return cc;
@@ -2437,6 +2280,26 @@ exit:
     return cc;
 }
 
+tABC_CC ABC_CreateHbits(char **pszResult,
+                        char **pszAddress,
+                        tABC_Error *pError)
+{
+    ABC_PROLOG();
+    ABC_CHECK_NULL(pszResult);
+    ABC_CHECK_NULL(pszAddress);
+
+    {
+        std::string key;
+        std::string address;
+        ABC_CHECK_NEW(hbitsCreate(key, address));
+        *pszResult = stringCopy(key);
+        *pszAddress = stringCopy(address);
+    }
+
+exit:
+    return cc;
+}
+
 tABC_CC ABC_AccountSyncExists(const char *szUserName,
                               bool *pResult,
                               tABC_Error *pError)
@@ -2520,11 +2383,13 @@ void ABC_FreeAccountSettings(tABC_AccountSettings *pSettings)
 
 tABC_CC ABC_DataSyncAccount(const char *szUserName,
                             const char *szPassword,
-                            tABC_BitCoin_Event_Callback fAsyncBitCoinEventCallback,
-                            void *pData,
+                            bool *pbDirty,
+                            bool *pbPasswordChanged,
                             tABC_Error *pError)
 {
     ABC_PROLOG();
+    ABC_CHECK_NULL(pbDirty);
+    ABC_CHECK_NULL(pbPasswordChanged);
 
     {
         ABC_GET_ACCOUNT();
@@ -2532,21 +2397,19 @@ tABC_CC ABC_DataSyncAccount(const char *szUserName,
         // Sync the account data:
         bool dirty = false;
         ABC_CHECK_NEW(account->sync(dirty));
-        if (dirty && fAsyncBitCoinEventCallback)
-        {
-            tABC_AsyncBitCoinInfo info;
-            info.eventType = ABC_AsyncEventType_DataSyncUpdate;
-            info.pData = pData;
-            info.szDescription = stringCopy("Account Updated");
-            fAsyncBitCoinEventCallback(&info);
-            ABC_FREE_STR(info.szDescription);
-        }
+        *pbDirty = dirty;
+
+        // Non-critical general information update:
+        generalUpdate().log();
 
         // Has the password changed?
         LoginPackage loginPackage;
         JsonPtr rootKeyBox;
         Status s = loginServerGetLoginPackage(account->login.lobby,
-                                              account->login.authKey(), DataChunk(), loginPackage, rootKeyBox);
+                                              account->login.authKey(),
+                                              DataChunk(),
+                                              loginPackage,
+                                              rootKeyBox);
 
         if (s.value() == ABC_CC_InvalidOTP)
         {
@@ -2554,20 +2417,10 @@ tABC_CC ABC_DataSyncAccount(const char *szUserName,
         }
         else if (s.value() == ABC_CC_BadPassword)
         {
-            if (fAsyncBitCoinEventCallback)
-            {
-                tABC_AsyncBitCoinInfo info;
-                info.eventType = ABC_AsyncEventType_RemotePasswordChange;
-                info.pData = pData;
-                info.szDescription = stringCopy("Password changed");
-                fAsyncBitCoinEventCallback(&info);
-                ABC_FREE_STR(info.szDescription);
-            }
+            *pbPasswordChanged = true;
             goto exit;
         }
-
-        // Non-critical general information update:
-        generalUpdate().log();
+        *pbPasswordChanged = false;
     }
 
 exit:
@@ -2577,27 +2430,18 @@ exit:
 tABC_CC ABC_DataSyncWallet(const char *szUserName,
                            const char *szPassword,
                            const char *szWalletUUID,
-                           tABC_BitCoin_Event_Callback fAsyncBitCoinEventCallback,
-                           void *pData,
+                           bool *pbDirty,
                            tABC_Error *pError)
 {
     ABC_PROLOG();
-    ABC_CHECK_NULL(fAsyncBitCoinEventCallback);
+    ABC_CHECK_NULL(pbDirty);
 
     {
         ABC_GET_WALLET();
 
         bool dirty = false;
         ABC_CHECK_NEW(wallet->sync(dirty));
-        if (dirty)
-        {
-            tABC_AsyncBitCoinInfo info;
-            info.eventType = ABC_AsyncEventType_DataSyncUpdate;
-            info.pData = pData;
-            info.szDescription = stringCopy("Wallet Updated");
-            fAsyncBitCoinEventCallback(&info);
-            ABC_FREE_STR(info.szDescription);
-        }
+        *pbDirty = dirty;
     }
 
 exit:
@@ -2620,7 +2464,7 @@ tABC_CC ABC_WatcherStart(const char *szUserName,
 
     {
         ABC_GET_WALLET();
-        ABC_CHECK_RET(ABC_BridgeWatcherStart(*wallet, pError));
+        ABC_CHECK_NEW(bridgeWatcherStart(*wallet));
     }
 
 exit:
@@ -2640,11 +2484,12 @@ tABC_CC ABC_WatcherLoop(const char *szWalletUUID,
                         tABC_Error *pError)
 {
     ABC_PROLOG();
+    ABC_CHECK_NULL(fAsyncBitCoinEventCallback);
 
     {
         ABC_GET_WALLET_N();
-        ABC_CHECK_RET(ABC_BridgeWatcherLoop(*wallet, fAsyncBitCoinEventCallback, pData,
-                                            pError));
+        ABC_CHECK_NEW(bridgeWatcherLoop(*wallet,
+                                        fAsyncBitCoinEventCallback, pData));
     }
 
 exit:
@@ -2657,7 +2502,7 @@ tABC_CC ABC_WatcherConnect(const char *szWalletUUID, tABC_Error *pError)
 
     {
         ABC_GET_WALLET_N();
-        ABC_CHECK_RET(ABC_BridgeWatcherConnect(*wallet, pError));
+        ABC_CHECK_NEW(bridgeWatcherConnect(*wallet));
     }
 
 exit:
@@ -2665,28 +2510,20 @@ exit:
 }
 
 /**
- * Watch all the addresses for szWalletUUID
- *
- * @param szUserName   UserName for the account
- * @param szPassword   Password for the account
- * @param szWalletUUID The wallet watcher to use
+ * Deprecated. Does nothing.
  */
 tABC_CC ABC_WatchAddresses(const char *szUserName, const char *szPassword,
                            const char *szWalletUUID, tABC_Error *pError)
 {
     ABC_PROLOG();
 
-    {
-        ABC_GET_WALLET();
-        ABC_CHECK_RET(ABC_TxWatchAddresses(*wallet, pError));
-    }
-
 exit:
     return cc;
 }
 
 /**
- * Watch a single address for a wallet
+ * Watch a single address for a wallet.
+ * Pass a nullptr address to cancel the priority poll.
  *
  * @param szUserName   DEPRECATED. Completely unused.
  * @param szPassword   DEPRECATED. Completely unused.
@@ -2701,7 +2538,11 @@ tABC_CC ABC_PrioritizeAddress(const char *szUserName, const char *szPassword,
 
     {
         ABC_GET_WALLET();
-        ABC_CHECK_RET(ABC_BridgePrioritizeAddress(*wallet, szAddress, pError));
+
+        std::string address;
+        if (szAddress)
+            address = szAddress;
+        wallet->addressCache.prioritize(address);
     }
 
 exit:
@@ -2719,7 +2560,7 @@ tABC_CC ABC_WatcherDisconnect(const char *szWalletUUID, tABC_Error *pError)
 
     {
         ABC_GET_WALLET_N();
-        ABC_CHECK_RET(ABC_BridgeWatcherDisconnect(*wallet, pError));
+        ABC_CHECK_NEW(bridgeWatcherDisconnect(*wallet));
     }
 
 exit:
@@ -2737,7 +2578,7 @@ tABC_CC ABC_WatcherStop(const char *szWalletUUID, tABC_Error *pError)
 
     {
         ABC_GET_WALLET_N();
-        ABC_CHECK_RET(ABC_BridgeWatcherStop(*wallet, pError));
+        ABC_CHECK_NEW(bridgeWatcherStop(*wallet));
     }
 
 exit:
@@ -2756,7 +2597,7 @@ tABC_CC ABC_WatcherDelete(const char *szWalletUUID, tABC_Error *pError)
 
     {
         ABC_GET_WALLET_N();
-        ABC_CHECK_RET(ABC_BridgeWatcherDelete(*wallet, pError));
+        ABC_CHECK_NEW(bridgeWatcherDelete(*wallet));
     }
 
 exit:
@@ -2998,8 +2839,8 @@ tABC_CC ABC_CsvExport(const char *szUserName, /* DEPRECATED */
         ABC_CHECK_RET(ABC_TxGetTransactions(*wallet, startTime, endTime,
                                             &paTransactions, &count, pError));
         ABC_CHECK_ASSERT(0 != count, ABC_CC_NoTransaction, "No transactions to export");
-        ABC_CHECK_RET(ABC_BridgeFilterTransactions(*wallet, paTransactions, &count,
-                      pError));
+        ABC_CHECK_NEW(bridgeFilterTransactions(*wallet,
+                                               paTransactions, &count));
 
         ABC_CHECK_RET(ABC_ExportFormatCsv(paTransactions, count, szCsvData, pError));
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, AirBitz, Inc.
+ * Copyright (c) 2014, Airbitz, Inc.
  * All rights reserved.
  *
  * See the LICENSE file for more information.
@@ -8,6 +8,7 @@
 #include "Text.hpp"
 #include "Testnet.hpp"
 #include "../Context.hpp"
+#include "../crypto/Random.hpp"
 #include "../util/Util.hpp"
 #include <bitcoin/bitcoin.hpp>
 
@@ -72,7 +73,7 @@ hbitsDecode(bc::ec_secret &result, const std::string &hbits)
     result = bc::sha256_hash(bc::to_data_chunk(trimmed));
 
     // XOR with our magic number:
-    auto mix = bc::decode_hex(gContext->hiddenBitzKey());
+    auto mix = bc::decode_hex(gContext->hiddenBitsKey());
     for (size_t i = 0; i < mix.size() && i < result.size(); ++i)
         result[i] ^= mix[i];
 
@@ -272,6 +273,31 @@ tABC_CC ABC_BridgeEncodeBitcoinURI(char **pszURI,
     *pszURI = stringCopy(writer.string());
 
     return cc;
+}
+
+Status
+hbitsCreate(std::string &result, std::string &addressOut)
+{
+    while (true)
+    {
+        libbitcoin::data_chunk cand(21);
+        ABC_CHECK(randomData(cand, cand.size()));
+        std::string minikey = libbitcoin::encode_base58(cand);
+        minikey.insert(0, "a");
+        if (30 == minikey.size() &&
+                0x00 == bc::sha256_hash(bc::to_data_chunk(minikey + "!"))[0])
+        {
+            bc::ec_secret secret;
+            hbitsDecode(secret, minikey);
+            bc::ec_point pubkey = bc::secret_to_public_key(secret, true);
+            bc::payment_address address;
+            address.set(pubkeyVersion(), bc::bitcoin_short_hash(pubkey));
+
+            result = minikey;
+            addressOut = address.encoded();
+            return Status();
+        }
+    }
 }
 
 } // namespace abcd

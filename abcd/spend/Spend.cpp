@@ -1,6 +1,8 @@
 /*
- *  Copyright (c) 2015, AirBitz, Inc.
- *  All rights reserved.
+ * Copyright (c) 2015, Airbitz, Inc.
+ * All rights reserved.
+ *
+ * See the LICENSE file for more information.
  */
 
 #include "Spend.hpp"
@@ -12,6 +14,7 @@
 #include "../Tx.hpp"
 #include "../bitcoin/Watcher.hpp"
 #include "../bitcoin/WatcherBridge.hpp"
+#include "../bitcoin/Utility.hpp"
 #include "../util/Debug.hpp"
 #include "../wallet/Details.hpp"
 #include "../wallet/Wallet.hpp"
@@ -23,16 +26,22 @@ static Status
 spendMakeTx(libbitcoin::transaction_type &result, Wallet &self,
             SendInfo *pInfo, const std::string &changeAddress)
 {
-    bc::output_info_list utxos =
-        self.txdb.get_utxos(self.addresses.list(), true);
-
     bc::transaction_type tx;
     tx.version = 1;
     tx.locktime = 0;
     ABC_CHECK(outputsForSendInfo(tx.outputs, pInfo));
 
     uint64_t fee, change;
-    ABC_CHECK(inputsPickOptimal(fee, change, tx, utxos));
+    auto utxos = self.txdb.get_utxos(self.addresses.list(), true);
+
+    // Check if enough confirmed inputs are available,
+    // otherwise use unconfirmed inputs too:
+    if (!inputsPickOptimal(fee, change, tx, utxos))
+    {
+        auto utxos = self.txdb.get_utxos(self.addresses.list(), false);
+        ABC_CHECK(inputsPickOptimal(fee, change, tx, utxos));
+    }
+
     ABC_CHECK(outputsFinalize(tx.outputs, change, changeAddress));
     pInfo->metadata.amountFeesMinersSatoshi = fee;
 
@@ -161,12 +170,12 @@ spendSaveTx(Wallet &self, SendInfo *pInfo, DataSlice rawTx,
     bc::satoshi_load(deserial.iterator(), deserial.end(), tx);
 
     // Save to the transaction cache:
-    if (self.txdb.insert(tx, TxState::unconfirmed))
+    if (self.txdb.insert(tx))
         watcherSave(self).log(); // Failure is not fatal
 
     // Update the Airbitz metadata:
     auto txid = bc::encode_hash(bc::hash_transaction(tx));
-    auto ntxid = ABC_BridgeNonMalleableTxId(tx);
+    auto ntxid = bc::encode_hash(makeNtxid(tx));
     std::vector<std::string> addresses;
     for (const auto &output: tx.outputs)
     {

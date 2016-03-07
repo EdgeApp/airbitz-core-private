@@ -191,8 +191,8 @@ typedef enum eABC_AsyncEventType
 {
     ABC_AsyncEventType_IncomingBitCoin,
     ABC_AsyncEventType_BlockHeightChange,
-    ABC_AsyncEventType_DataSyncUpdate,
-    ABC_AsyncEventType_RemotePasswordChange,
+    ABC_AsyncEventType_BalanceUpdate,
+    ABC_AsyncEventType_AddressCheckDone,
     ABC_AsyncEventType_IncomingSweep
 } tABC_AsyncEventType;
 
@@ -205,25 +205,22 @@ typedef enum eABC_AsyncEventType
  */
 typedef struct sABC_AsyncBitCoinInfo
 {
-    /** data pointer given by caller at init */
-    void    *pData;
+    /** Data pointer given by caller. */
+    void *pData;
 
-    /** type of event that occured */
+    /** Type of event that occurred. */
     tABC_AsyncEventType eventType;
 
-    /* Return status of call */
+    /** The success or failure of the event. */
     tABC_Error status;
 
-    /** if the event involved a wallet, this is its ID */
+    /** If the event involved a wallet, this is its ID. */
     const char *szWalletUUID;
 
-    /** if the event involved a transaction, this is its ID */
+    /** If the event involved a transaction, this is its ID. */
     const char *szTxID;
 
-    /** String containing a description of the event */
-    const char *szDescription;
-
-    /** amount swept */
+    /** The amount swept, if this is a sweep. */
     int64_t sweepSatoshi;
 } tABC_AsyncBitCoinInfo;
 
@@ -427,8 +424,8 @@ typedef struct sABC_AccountSettings
     char                        *szPIN;
     /** should name be listed on payments */
     bool                        bNameOnPayments;
-    /** how many minutes before auto logout */
-    int                         minutesAutoLogout;
+    /** how many seconds before auto logout */
+    int                         secondsAutoLogout;
     /** Number of times we have reminded the user to setup recovery q's */
     int                         recoveryReminderCount;
     /** language (ISO 639-1) */
@@ -468,19 +465,6 @@ typedef struct sABC_AccountSettings
  */
 typedef void (*tABC_BitCoin_Event_Callback)(const tABC_AsyncBitCoinInfo *pInfo);
 
-/**
- * Called when the sweep process completes.
- *
- * @param cc Ok if the sweep completed successfully,
- * or some error code if something went wrong.
- * @param szID The transaction id of the incoming funds,
- * if the sweep succeeded.
- * @param amount The number of satoshis swept into the wallet.
- */
-typedef void (*tABC_Sweep_Done_Callback)(tABC_CC cc,
-        const char *szID,
-        uint64_t amount);
-
 /* === Library lifetime: === */
 
 /**
@@ -488,7 +472,7 @@ typedef void (*tABC_Sweep_Done_Callback)(tABC_CC cc,
  * @param szRootDir             The root directory for all files to be saved
  * @param szCaCertPath          CA Certificate Path
  * @param szApiKey              API Key for the AirBitz login servers
- * @param szHiddenBitzKey       Private key for Hiddenbits promotion
+ * @param szHiddenBitsKey       Private key for Hiddenbits promotion
  * @param pData                 Pointer to data to be returned back in callback
  * @param pSeedData             Pointer to data to seed the random number generator
  * @param seedLength            Length of the seed data
@@ -497,7 +481,7 @@ typedef void (*tABC_Sweep_Done_Callback)(tABC_CC cc,
 tABC_CC ABC_Initialize(const char               *szRootDir,
                        const char               *szCaCertPath,
                        const char               *szApiKey,
-                       const char               *szHiddenBitzKey,
+                       const char               *szHiddenBitsKey,
                        const unsigned char      *pSeedData,
                        unsigned int             seedLength,
                        tABC_Error               *pError);
@@ -555,7 +539,24 @@ tABC_CC ABC_QrEncode(const char *szText,
                      unsigned int *pWidth,
                      tABC_Error *pError);
 
+/**
+ * Generates a random private key in the hbits format.
+ */
+tABC_CC ABC_CreateHbits(char **pszResult,
+                        char **pszAddress,
+                        tABC_Error *pError);
+
 /* === Login lifetime: === */
+
+/**
+ * Transforms a username into the internal format used for hashing.
+ * This collapses spaces, converts things to lowercase,
+ * and checks for invalid characters.
+ */
+tABC_CC ABC_FixUsername(char **pszResult,
+                        const char *szUserName,
+                        tABC_Error *pError);
+
 tABC_CC ABC_SignIn(const char *szUserName,
                    const char *szPassword,
                    tABC_Error *pError);
@@ -574,24 +575,38 @@ tABC_CC ABC_GetRecoveryQuestions(const char *szUserName,
                                  char **pszQuestions,
                                  tABC_Error *pError);
 
-tABC_CC ABC_CheckRecoveryAnswers(const char *szUserName,
-                                 const char *szRecoveryAnswers,
-                                 bool *pbValid,
-                                 tABC_Error *pError);
+/**
+ * Logs the user in using their recovery answers.
+ * @param szRecoveryAnswers newline-separated recovery answers.
+ */
+tABC_CC ABC_RecoveryLogin(const char *szUserName,
+                          const char *szRecoveryAnswers,
+                          tABC_Error *pError);
 
 tABC_CC ABC_PinLoginExists(const char *szUserName,
                            bool *pbExists,
-                           tABC_Error *pError);
-
-tABC_CC ABC_PinLoginDelete(const char *szUserName,
                            tABC_Error *pError);
 
 tABC_CC ABC_PinLogin(const char *szUserName,
                      const char *szPin,
                      tABC_Error *pError);
 
+/**
+ * Sets up the data for a pin-based login, both on disk and on the server.
+ */
 tABC_CC ABC_PinSetup(const char *szUserName,
                      const char *szPassword,
+                     const char *szPin,
+                     tABC_Error *pError);
+
+/**
+ * Checks a PIN for correctness.
+ * This is used to guard access to certain actions in the GUI.
+ */
+tABC_CC ABC_PinCheck(const char *szUserName,
+                     const char *szPassword,
+                     const char *szPin,
+                     bool *pbResult,
                      tABC_Error *pError);
 
 tABC_CC ABC_ListAccounts(char **pszUserNames,
@@ -602,11 +617,6 @@ tABC_CC ABC_ChangePassword(const char *szUserName,
                            const char *szPassword,
                            const char *szNewPassword,
                            tABC_Error *pError);
-
-tABC_CC ABC_ChangePasswordWithRecoveryAnswers(const char *szUserName,
-        const char *szRecoveryAnswers,
-        const char *szNewPassword,
-        tABC_Error *pError);
 
 tABC_CC ABC_SetAccountRecoveryQuestions(const char *szUserName,
                                         const char *szPassword,
@@ -762,16 +772,6 @@ tABC_CC ABC_UpdateAccountSettings(const char *szUserName,
 
 void ABC_FreeAccountSettings(tABC_AccountSettings *pSettings);
 
-tABC_CC ABC_GetPIN(const char *szUserName,
-                   const char *szPassword,
-                   char **pszPin,
-                   tABC_Error *pError);
-
-tABC_CC ABC_SetPIN(const char *szUserName,
-                   const char *szPassword,
-                   const char *szPin,
-                   tABC_Error *pError);
-
 tABC_CC ABC_GetCategories(const char *szUserName,
                           const char *szPassword,
                           char ***paszCategories,
@@ -790,8 +790,8 @@ tABC_CC ABC_RemoveCategory(const char *szUserName,
 
 tABC_CC ABC_DataSyncAccount(const char *szUserName,
                             const char *szPassword,
-                            tABC_BitCoin_Event_Callback fAsyncBitCoinEventCallback,
-                            void *pData,
+                            bool *pbDirty,
+                            bool *pbPasswordChanged,
                             tABC_Error *pError);
 
 tABC_CC ABC_UploadLogs(const char *szUserName,
@@ -958,15 +958,13 @@ tABC_CC ABC_CsvExport(const char *szUserName,
 tABC_CC ABC_DataSyncWallet(const char *szUserName,
                            const char *szPassword,
                            const char *szWalletUUID,
-                           tABC_BitCoin_Event_Callback fAsyncBitCoinEventCallback,
-                           void *pData,
+                           bool *pbDirty,
                            tABC_Error *pError);
 
 /* === Receiving: === */
 tABC_CC ABC_CreateReceiveRequest(const char *szUserName,
                                  const char *szPassword,
                                  const char *szWalletUUID,
-                                 tABC_TxDetails *pDetails,
                                  char **pszRequestID,
                                  tABC_Error *pError);
 
@@ -997,13 +995,6 @@ tABC_CC ABC_GenerateRequestQRCode(const char *szUserName,
                                   unsigned char **paData,
                                   unsigned int *pWidth,
                                   tABC_Error *pError);
-
-tABC_CC ABC_GetRequestAddress(const char *szUserName,
-                              const char *szPassword,
-                              const char *szWalletUUID,
-                              const char *szRequestID,
-                              char **pszAddress,
-                              tABC_Error *pError);
 
 /* === Spending: === */
 
@@ -1102,8 +1093,6 @@ tABC_CC ABC_SweepKey(const char *szUsername,
                      const char *szWalletUUID,
                      const char *szKey,
                      char **pszAddress,
-                     tABC_Sweep_Done_Callback fCallback,
-                     void *pData,
                      tABC_Error *pError);
 
 /* === Transactions: === */
