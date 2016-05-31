@@ -58,6 +58,12 @@ using namespace abcd;
     ABC_SET_ERR_CODE(pError, ABC_CC_Ok); \
     ABC_CHECK_ASSERT(gContext, ABC_CC_NotInitialized, "The core library has not been initalized")
 
+#define ABC_PROLOG_NO_DEBUG() \
+    ABC_DebugLog("%s called", __FUNCTION__); \
+    tABC_CC cc = ABC_CC_Ok; \
+    ABC_SET_ERR_CODE(pError, ABC_CC_Ok); \
+    ABC_CHECK_ASSERT(gContext, ABC_CC_NotInitialized, "The core library has not been initalized")
+
 #define ABC_GET_LOBBY() \
     std::shared_ptr<Lobby> lobby; \
     ABC_CHECK_NEW(cacheLobby(lobby, szUserName))
@@ -1247,7 +1253,7 @@ tABC_CC ABC_SatoshiToCurrency(const char *szUserName,
                               int currencyNum,
                               tABC_Error *pError)
 {
-    ABC_PROLOG();
+    ABC_PROLOG_NO_DEBUG();
 
     ABC_CHECK_NEW(gContext->exchangeCache.satoshiToCurrency(*pCurrency, satoshi,
                   static_cast<Currency>(currencyNum)));
